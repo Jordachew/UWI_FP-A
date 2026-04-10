@@ -208,17 +208,36 @@
           if (isNaN(num)) return 0;
           return isNegative ? -num : num;
         }
+        
+        function getFacultyFromOrg(orgNum) {
+          if (!orgNum) return 'Admin & Other Units';
+          const num = parseInt(String(orgNum).trim(), 10);
+          if (isNaN(num)) return 'Admin & Other Units';
+
+          if (num >= 7100 && num <= 7199) return 'Faculty of Humanities & Education';
+          if (num >= 7200 && num <= 7299) return 'Faculty of Law';
+          if (num >= 7300 && num <= 7399) return 'Faculty of Engineering';
+          if (num >= 7400 && num <= 7499) return 'Faculty of Medical Sciences';
+          if (num >= 7500 && num <= 7599) return 'Faculty of Science & Technology';
+          if (num >= 7600 && num <= 7699) return 'Faculty of Social Sciences';
+          if (num >= 7700 && num <= 7799) return 'Faculty of Sport';
+          if (num >= 7800 && num <= 7899) return 'Institute for Gender & Dev Studies';
+
+          return 'Admin & Other Units';
+        }
 
         // Relative path for simple HTML hosting
         const getLogoSrc = () => './logo_uwi_lrg.jpg';
 
         // --- Configurations ---
         const HIERARCHY_PRESETS = [
-          { label: 'Faculty/Dept > Account > Position > Employee', keys: ['Department name', 'Acct. Description', 'Posn Desc', 'Name'] },
-          { label: 'Faculty/Dept > Position > Employee', keys: ['Department name', 'Posn Desc', 'Name'] },
-          { label: 'Position > Faculty/Dept > Employee', keys: ['Posn Desc', 'Department name', 'Name'] },
-          { label: 'Faculty / Department Only', keys: ['Department name'] },
-          { label: 'Account Category > Faculty', keys: ['Acct. Description', 'Department name'] },
+          { label: 'Faculty > Dept > Account > Position > Emp', keys: ['Mapped Faculty', 'Department name', 'Acct. Description', 'Posn Desc', 'Name'] },
+          { label: 'Faculty > Dept > Position > Emp', keys: ['Mapped Faculty', 'Department name', 'Posn Desc', 'Name'] },
+          { label: 'Faculty Only', keys: ['Mapped Faculty'] },
+          { label: 'Dept > Account > Position > Emp', keys: ['Department name', 'Acct. Description', 'Posn Desc', 'Name'] },
+          { label: 'Position > Dept > Emp', keys: ['Posn Desc', 'Department name', 'Name'] },
+          { label: 'Department Only', keys: ['Department name'] },
+          { label: 'Account Category > Dept', keys: ['Acct. Description', 'Department name'] },
           { label: 'Position Only', keys: ['Posn Desc'] },
           { label: 'Group Only', keys: ['Group'] },
           { label: 'Sal Plan Only', keys: ['Sal Plan'] }
@@ -372,6 +391,7 @@
                   if (!val && key === 'Department name') val = row['Department'] || row['Descr_1'];
                   if (!val && key === 'Acct. Description') val = row['Account'] || row['__EMPTY'] || row['Descr'];
                   if (!val && key === 'Posn Desc') val = row['Position'];
+                  if (key === 'Mapped Faculty') val = getFacultyFromOrg(row['Org. #'] || row['Org'] || row['Org.']);
                   
                   // Force conversion to String to prevent React crashes when sorting number-only fields
                   val = String(val || `Unknown ${key}`).trim();
@@ -416,8 +436,11 @@
                     const empName = String(adj['Name'] || adj['name'] || `New Hire (${adjId})`).trim();
                     const grp = String(adj['Group'] || 'TBD Group').trim();
                     const salPlan = String(adj['Sal Plan'] || adj['sal plan'] || 'TBD Plan').trim();
+                    const orgNum = adj['Org. #'] || adj['Org'] || adj['Org.'] || '';
+                    const mappedFac = getFacultyFromOrg(orgNum);
 
                     const virtualRow = {
+                      'Mapped Faculty': mappedFac,
                       'Department name': dept,
                       'Acct. Description': acct,
                       'Posn Desc': posn,
