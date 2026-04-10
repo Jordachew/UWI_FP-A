@@ -66,6 +66,23 @@
           </svg>
         );
 
+        const ChartIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        );
+
+        const TableIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-2">
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+            <line x1="3" y1="16" x2="21" y2="16"></line>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          </svg>
+        );
+
         // --- Browser IndexedDB Storage Engine ---
         const DB_NAME = 'UWIPayrollDB';
         const STORE_NAME = 'csvData';
@@ -211,13 +228,11 @@
         
         // --- Robust Org Number Extractor ---
         function getOrgValue(row) {
-            // 1. Try exact matches first
             if (row['Org. #'] !== undefined) return row['Org. #'];
             if (row['Org #'] !== undefined) return row['Org #'];
             if (row['Org.'] !== undefined) return row['Org.'];
             if (row['Org'] !== undefined) return row['Org'];
             
-            // 2. Fuzzy match to bypass hidden spaces/formatting
             const orgKey = Object.keys(row).find(k => {
                 const clean = String(k).replace(/\s+/g, '').toLowerCase();
                 return clean === 'org.#' || clean === 'org#' || clean === 'org' || clean === 'orgnum';
@@ -229,7 +244,6 @@
         function getFacultyFromOrg(orgNum) {
           if (orgNum === null || orgNum === undefined || orgNum === '') return 'Admin & Other Units';
           
-          // Extract the first sequence of digits. This handles strings like " 7403", "Org7403", etc.
           const match = String(orgNum).match(/\d+/);
           if (!match) return 'Admin & Other Units';
 
@@ -278,6 +292,10 @@
           const [viewMode, setViewMode] = useState('actuals'); 
           const [timeGrouping, setTimeGrouping] = useState('month');
           const [hierarchyIndex, setHierarchyIndex] = useState(0);
+          
+          // Tabs and Navigation
+          const [activeTab, setActiveTab] = useState('table'); // 'table' | 'waterfall'
+          const [waterfallTargetIndex, setWaterfallTargetIndex] = useState(-1);
           
           // Dashboard State
           const [dashboardMonth, setDashboardMonth] = useState('');
@@ -410,14 +428,12 @@
                 presetKeys.forEach((key, idx) => {
                   let val = row[key];
                   
-                  // CRITICAL FIX: Safe Fallbacks for UWI Export formatting anomalies + Force String type to prevent .localeCompare crashes
                   if (!val && key === 'Department name') val = row['Department'] || row['Descr_1'];
                   if (!val && key === 'Acct. Description') val = row['Account'] || row['__EMPTY'] || row['Descr'];
                   if (!val && key === 'Posn Desc') val = row['Position'];
                   if (!val && key === 'Account #') val = row['Account Number'] || row['AccountNum'];
                   if (key === 'Mapped Faculty') val = getFacultyFromOrg(getOrgValue(row));
                   
-                  // Force conversion to String to prevent React crashes when sorting number-only fields
                   val = String(val || `Unknown ${key}`).trim();
                   
                   currentId = `${currentId}|${val}`;
@@ -589,6 +605,11 @@
 
           const collapseAll = () => setExpandedRows(new Set(['root']));
 
+          // Reset waterfall index when time grouping changes
+          useEffect(() => {
+              setWaterfallTargetIndex(-1);
+          }, [timeGrouping]);
+
           // Calculate Display Periods based on August-July Financial Year and YTD
           const displayPeriods = useMemo(() => {
             if (!dataModel) return [];
@@ -644,7 +665,6 @@
                 key = `FY-${fyStartYear}`; 
                 label = fyLabel;
               } else if (timeGrouping === 'quarter') {
-                // FY Quarters: Q1 (Aug-Oct), Q2 (Nov-Jan), Q3 (Feb-Apr), Q4 (May-Jul)
                 let q;
                 if (mm >= 8 && mm <= 10) q = 1;
                 else if (mm === 11 || mm === 12 || mm === 1) q = 2;
@@ -789,7 +809,7 @@
             const currentHC = root.empIds[dashboardMonth] ? root.empIds[dashboardMonth].size : 0;
             const prevHC = prevMonth && root.empIds[prevMonth] ? root.empIds[prevMonth].size : 0;
 
-            // YTD Calculation for the selected month's Financial Year
+            // YTD Calculation
             const [dYearStr, dMonthStr] = dashboardMonth.split('-');
             const dYear = parseInt(dYearStr, 10);
             const dMonth = parseInt(dMonthStr, 10);
@@ -825,6 +845,162 @@
             };
           }, [dataModel, dashboardMonth]);
 
+          // --- Waterfall Chart Engine ---
+          const waterfallData = useMemo(() => {
+              if (displayPeriods.length < 2 || !dataModel) return null;
+              
+              let wfIndex = waterfallTargetIndex;
+              if (wfIndex === -1 || wfIndex >= displayPeriods.length) {
+                  wfIndex = displayPeriods.length - 1;
+              }
+              if (wfIndex === 0) wfIndex = 1; // Need at least index 1 to have a prev period
+
+              const wfCurrent = displayPeriods[wfIndex];
+              const wfPrev = displayPeriods[wfIndex - 1];
+
+              const prevTotal = getMetricValue(dataModel.tree, wfPrev);
+              const currTotal = getMetricValue(dataModel.tree, wfCurrent);
+
+              let deltas = [];
+              Object.values(dataModel.tree.children).forEach(child => {
+                  const pVal = getMetricValue(child, wfPrev);
+                  const cVal = getMetricValue(child, wfCurrent);
+                  const diff = cVal - pVal;
+                  if (Math.abs(diff) > 0.01) {
+                      deltas.push({ name: child.name, value: diff });
+                  }
+              });
+
+              deltas.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+              // Top 7 + Other
+              if (deltas.length > 7) {
+                  const top = deltas.slice(0, 7);
+                  const otherVal = deltas.slice(7).reduce((sum, d) => sum + d.value, 0);
+                  if (Math.abs(otherVal) > 0.01) {
+                      top.push({ name: 'Other Groupings', value: otherVal });
+                  }
+                  deltas = top;
+              }
+
+              const steps = [];
+              steps.push({ label: wfPrev.label, value: prevTotal, isTotal: true, startY: 0, endY: prevTotal });
+
+              let runningTotal = prevTotal;
+              deltas.forEach(d => {
+                  steps.push({
+                      label: d.name,
+                      value: d.value,
+                      isTotal: false,
+                      startY: runningTotal,
+                      endY: runningTotal + d.value
+                  });
+                  runningTotal += d.value;
+              });
+
+              steps.push({ label: wfCurrent.label, value: currTotal, isTotal: true, startY: 0, endY: currTotal });
+              return { steps, wfCurrent, wfPrev, wfIndex };
+          }, [displayPeriods, waterfallTargetIndex, dataModel, getMetricValue]);
+
+          const renderWaterfallSVG = () => {
+              if (!waterfallData) {
+                  return (
+                      <div className="py-20 text-center text-gray-500">
+                          <p className="text-lg font-semibold mb-2">Insufficient Data for Waterfall</p>
+                          <p className="text-sm">The Waterfall chart requires at least two periods to compare. Please ensure your time grouping is set to Monthly, Quarterly, or Annually (YTD cannot be used here).</p>
+                      </div>
+                  );
+              }
+
+              const { steps } = waterfallData;
+              const maxVal = Math.max(...steps.map(d => Math.max(d.startY, d.endY)));
+              const minVal = Math.min(0, ...steps.map(d => Math.min(d.startY, d.endY)));
+
+              const padding = (maxVal - minVal) * 0.1 || 10;
+              const yMax = maxVal + padding;
+              const yMin = minVal - padding;
+              const yRange = yMax - yMin;
+
+              const width = 1000;
+              const chartHeight = 400;
+              const labelSpace = 120; // Space for tilted x-axis labels
+
+              const getY = (val) => chartHeight - ((val - yMin) / yRange) * chartHeight;
+              const barWidth = width / steps.length;
+              const barPadding = barWidth * 0.15;
+
+              return (
+                  <div className="w-full overflow-x-auto pb-4">
+                      <div className="min-w-[800px]">
+                          <svg viewBox={`0 0 ${width} ${chartHeight + labelSpace}`} className="w-full h-auto text-xs font-sans select-none">
+                              {/* Grid lines */}
+                              {[0, 0.25, 0.5, 0.75, 1].map(pct => {
+                                  const val = yMin + (yRange * pct);
+                                  const y = getY(val);
+                                  return (
+                                      <g key={`grid-${pct}`}>
+                                          <line x1={0} y1={y} x2={width} y2={y} stroke="#e5e7eb" strokeDasharray="4 4" />
+                                          <text x={0} y={y - 4} fill="#9ca3af" fontSize="10">{metric === 'amount' ? formatCurrency(val) : formatCount(val)}</text>
+                                      </g>
+                                  )
+                              })}
+
+                              {/* Base Line at 0 */}
+                              {yMin < 0 && yMax > 0 && <line x1={0} y1={getY(0)} x2={width} y2={getY(0)} stroke="#6b7280" strokeWidth="1" />}
+
+                              {/* Bars & Connectors */}
+                              {steps.map((d, i) => {
+                                  const x = i * barWidth + barPadding / 2;
+                                  const w = barWidth - barPadding;
+                                  const y = Math.min(getY(d.startY), getY(d.endY));
+                                  const h = Math.max(2, Math.abs(getY(d.startY) - getY(d.endY)));
+
+                                  let color = d.isTotal ? "#1e3a8a" : (d.value > 0 ? "#dc2626" : "#16a34a");
+
+                                  let connector = null;
+                                  if (i > 0) {
+                                      const prevY = getY(steps[i-1].endY);
+                                      connector = <line x1={x - barPadding} y1={prevY} x2={x} y2={prevY} stroke="#9ca3af" strokeDasharray="3 3" strokeWidth="1" />;
+                                  }
+
+                                  const displayVal = metric === 'amount' ? formatCurrency(d.value) : formatCount(d.value);
+                                  const labelStr = d.value > 0 && !d.isTotal ? '+' + displayVal : displayVal;
+                                  
+                                  // Truncate long X labels
+                                  const shortLabel = d.label.length > 25 ? d.label.substring(0, 23) + '...' : d.label;
+
+                                  return (
+                                      <g key={i} className="group cursor-default">
+                                          <title>{d.label}&#10;{d.isTotal ? 'Balance' : 'Variance'}: {displayVal}</title>
+                                          {connector}
+                                          <rect x={x} y={y} width={w} height={h} fill={color} rx="2" className="transition-opacity group-hover:opacity-80" />
+                                          
+                                          {/* Value Label Above/Below Bar */}
+                                          <text x={x + w/2} y={d.value >= 0 ? y - 8 : y + h + 16} textAnchor="middle" fill={color} fontWeight="bold" fontSize="11">
+                                              {labelStr}
+                                          </text>
+                                          
+                                          {/* X Axis Label */}
+                                          <text 
+                                            x={x + w/2} 
+                                            y={chartHeight + 15} 
+                                            textAnchor="end" 
+                                            fill="#4b5563" 
+                                            fontSize="11" 
+                                            fontWeight={d.isTotal ? "bold" : "normal"}
+                                            transform={`rotate(-35, ${x + w/2}, ${chartHeight + 15})`}
+                                          >
+                                              {shortLabel}
+                                          </text>
+                                      </g>
+                                  )
+                              })}
+                          </svg>
+                      </div>
+                  </div>
+              )
+          };
+
           // --- Export to Excel Function ---
           const exportToExcel = async () => {
             if (!dataModel) return;
@@ -853,7 +1029,7 @@
               // 2. Build Data Rows
               flatRows.forEach(node => {
                 const indent = "   ".repeat(node.level);
-                const row = [String(indent + node.name)]; // Force string export
+                const row = [String(indent + node.name)]; 
                 
                 displayPeriods.forEach((period, idx) => {
                   const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
@@ -969,7 +1145,7 @@
                           disabled={isProcessing}
                         >
                           {HIERARCHY_PRESETS.map((preset, idx) => (
-                            <option key={idx} value={idx}>View: {preset.label}</option>
+                            <option key={idx} value={idx}>Hierarchy: {preset.label}</option>
                           ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
@@ -1011,46 +1187,53 @@
                       Headcount
                     </button>
                   </div>
+                  
+                  {/* View Mode (Actuals vs Variance) only relevant for Table view */}
+                  {activeTab === 'table' && (
+                      <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+                        <button 
+                          onClick={() => setViewMode('actuals')}
+                          disabled={isProcessing}
+                          className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'actuals' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                          Actuals/FCST
+                        </button>
+                        <button 
+                          onClick={() => setViewMode('variance')}
+                          disabled={isProcessing}
+                          className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'variance' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                          Variance Mode
+                        </button>
+                      </div>
+                  )}
 
-                  <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-                    <button 
-                      onClick={() => setViewMode('actuals')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'actuals' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      Actuals/FCST
-                    </button>
-                    <button 
-                      onClick={() => setViewMode('variance')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'variance' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      Variance Mode
-                    </button>
-                  </div>
+                  {activeTab === 'table' && (
+                      <button 
+                        onClick={collapseAll}
+                        disabled={isProcessing}
+                        className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 font-medium text-gray-700 text-xs shadow-sm"
+                      >
+                        Collapse All
+                      </button>
+                  )}
 
-                  <button 
-                    onClick={collapseAll}
-                    disabled={isProcessing}
-                    className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 font-medium text-gray-700 text-xs shadow-sm"
-                  >
-                    Collapse All
-                  </button>
-
-                  <button 
-                    onClick={exportToExcel}
-                    disabled={isProcessing || !dataModel}
-                    className="px-3 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-md bg-white font-medium text-xs shadow-sm flex items-center gap-1 transition-colors"
-                  >
-                    <ExcelIcon />
-                    Export to Excel
-                  </button>
+                  {activeTab === 'table' && (
+                      <button 
+                        onClick={exportToExcel}
+                        disabled={isProcessing || !dataModel}
+                        className="px-3 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-md bg-white font-medium text-xs shadow-sm flex items-center gap-1 transition-colors"
+                      >
+                        <ExcelIcon />
+                        Export to Excel
+                      </button>
+                  )}
                 </div>
               </div>
               
               {/* --- Dashboard Summary Section --- */}
               {dashboardStats && (
-                <div className="bg-white shadow-sm border-b border-x border-gray-200 p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
+                <div className="bg-white shadow-sm border-x border-gray-200 p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
                   <div className="flex flex-col items-start min-w-[200px]">
                     <span className="text-xs font-semibold tracking-wider text-gray-400 uppercase mb-1">Executive Summary</span>
                     <div className="relative w-full">
@@ -1126,114 +1309,173 @@
                 </div>
               )}
 
-              <div className="bg-white shadow-sm rounded-b-xl flex-grow overflow-hidden flex flex-col border border-gray-200 relative">
+              {/* --- Tabs Navigation --- */}
+              <div className="bg-white border-x border-b border-gray-200 px-6 pt-4 flex gap-6 border-t-4 border-t-gray-50">
+                  <button 
+                      onClick={() => setActiveTab('table')}
+                      className={`pb-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'table' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                  >
+                      <TableIcon /> Report Builder View
+                  </button>
+                  <button 
+                      onClick={() => setActiveTab('waterfall')}
+                      className={`pb-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'waterfall' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                  >
+                      <ChartIcon /> Movement Waterfall Chart
+                  </button>
+              </div>
+
+              {/* --- Main Content Area --- */}
+              <div className="bg-white shadow-sm rounded-b-xl flex-grow overflow-hidden flex flex-col border-x border-b border-gray-200 relative">
                 {isProcessing && (
                   <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center">
                     <div className="text-blue-600 font-semibold text-lg animate-pulse flex items-center bg-white px-6 py-3 rounded-full shadow-lg border border-blue-100">
                       <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                      Updating Engine & Re-calculating Forecasts...
+                      Updating Engine...
                     </div>
                   </div>
                 )}
 
-                <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
-                  {dataModel && (
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                        <tr>
-                          <th className="px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[350px]">
-                            {HIERARCHY_PRESETS[hierarchyIndex].label}
-                          </th>
-                          
-                          {displayPeriods.map((period, idx) => {
-                            const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                            const isFcst = period.type === 'forecast';
-                            const isMixed = period.type === 'mixed';
-                            const headerStyle = isFcst ? 'bg-indigo-50/80 text-indigo-900' : isMixed ? 'bg-blue-50/50 text-blue-900' : 'text-gray-700';
-
-                            return (
-                              <th key={period.key} className={`px-3 py-3 font-semibold text-right border-b border-gray-200 whitespace-nowrap ${headerStyle}`}>
-                                {viewMode === 'variance' && prevPeriod ? (
-                                  <span className="text-xs">{period.label} vs<br/>{prevPeriod.label}</span>
-                                ) : (
-                                  <>
-                                    {period.label}
-                                    {period.containsBaseMonth && <span className="ml-1 text-[10px] uppercase tracking-wider text-blue-600" title="Contains Base Month">(Base)</span>}
-                                    {isFcst && <span className="ml-1 text-[10px] uppercase opacity-70">(FCST)</span>}
-                                    {isMixed && <span className="ml-1 text-[10px] uppercase opacity-70">(Act+Fcst)</span>}
-                                  </>
-                                )}
+                {/* --- TABLE TAB --- */}
+                {activeTab === 'table' && (
+                    <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
+                      {dataModel && (
+                        <table className="w-full text-left border-collapse">
+                          <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                              <th className="px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[350px]">
+                                {HIERARCHY_PRESETS[hierarchyIndex].label}
                               </th>
-                            );
-                          })}
-                          
-                          {/* --- Row Total Header --- */}
-                          <th className="px-4 py-3 font-bold text-right border-b border-l-2 border-gray-300 whitespace-nowrap bg-gray-200 text-gray-900 shadow-sm">
-                            Total
-                          </th>
-                        </tr>
-                      </thead>
-                      
-                      <tbody className="divide-y divide-gray-100">
-                        {flatRows.map((node) => {
-                          const isExpanded = expandedRows.has(node.id);
-                          const hasChildren = node.children && Object.keys(node.children).length > 0;
-                          
-                          let rowStyle = "hover:bg-gray-50 transition-colors group";
-                          let indentPx = node.level * 24 + 16; 
-                          let fontStyle = "text-gray-700";
-                          
-                          if (node.level === 0) {
-                            rowStyle = "bg-gray-50 hover:bg-gray-100 border-t-2 border-gray-300";
-                            fontStyle = "font-bold text-gray-900";
-                          } else if (node.level === 1) {
-                            fontStyle = "font-semibold text-gray-800";
-                          } else if (!hasChildren) {
-                            fontStyle = "text-gray-500 text-xs";
-                          }
-
-                          const rowTotal = getRowTotal(node);
-                          let totalColorClass = "text-gray-900";
-                          if (viewMode === 'variance') {
-                             if (rowTotal > 0) totalColorClass = "text-red-700";
-                             if (rowTotal < 0) totalColorClass = "text-green-700";
-                          }
-
-                          return (
-                            <tr key={node.id} className={rowStyle}>
-                              <td className={`py-2 border-r border-gray-100 whitespace-nowrap ${fontStyle}`} style={{ paddingLeft: `${indentPx}px`, paddingRight: '16px' }}>
-                                <div className="flex items-center">
-                                  {hasChildren ? (
-                                    <button 
-                                      onClick={() => toggleRow(node.id)} 
-                                      className="mr-2 text-gray-400 hover:text-blue-600 focus:outline-none p-1 rounded hover:bg-blue-50 transition-colors"
-                                    >
-                                      {isExpanded ? <ChevronDown /> : <ChevronRight />}
-                                    </button>
-                                  ) : (
-                                    <span className="w-7 mr-2 inline-block"></span>
-                                  )}
-                                  <span className="truncate max-w-md" title={node.name}>{node.name}</span>
-                                </div>
-                              </td>
-
+                              
                               {displayPeriods.map((period, idx) => {
                                 const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                                return renderValueCell(node, period, prevPeriod);
+                                const isFcst = period.type === 'forecast';
+                                const isMixed = period.type === 'mixed';
+                                const headerStyle = isFcst ? 'bg-indigo-50/80 text-indigo-900' : isMixed ? 'bg-blue-50/50 text-blue-900' : 'text-gray-700';
+
+                                return (
+                                  <th key={period.key} className={`px-3 py-3 font-semibold text-right border-b border-gray-200 whitespace-nowrap ${headerStyle}`}>
+                                    {viewMode === 'variance' && prevPeriod ? (
+                                      <span className="text-xs">{period.label} vs<br/>{prevPeriod.label}</span>
+                                    ) : (
+                                      <>
+                                        {period.label}
+                                        {period.containsBaseMonth && <span className="ml-1 text-[10px] uppercase tracking-wider text-blue-600" title="Contains Base Month">(Base)</span>}
+                                        {isFcst && <span className="ml-1 text-[10px] uppercase opacity-70">(FCST)</span>}
+                                        {isMixed && <span className="ml-1 text-[10px] uppercase opacity-70">(Act+Fcst)</span>}
+                                      </>
+                                    )}
+                                  </th>
+                                );
                               })}
                               
-                              {/* --- Row Total Cell --- */}
-                              <td className={`px-4 py-2 text-right font-bold border-l-2 border-gray-200 bg-gray-50/50 ${totalColorClass}`}>
-                                {viewMode === 'variance' && rowTotal > 0 ? '+' : ''}
-                                {metric === 'amount' ? formatCurrency(rowTotal) : formatCount(rowTotal)}
-                              </td>
+                              <th className="px-4 py-3 font-bold text-right border-b border-l-2 border-gray-300 whitespace-nowrap bg-gray-200 text-gray-900 shadow-sm">
+                                Total
+                              </th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
+                          </thead>
+                          
+                          <tbody className="divide-y divide-gray-100">
+                            {flatRows.map((node) => {
+                              const isExpanded = expandedRows.has(node.id);
+                              const hasChildren = node.children && Object.keys(node.children).length > 0;
+                              
+                              let rowStyle = "hover:bg-gray-50 transition-colors group";
+                              let indentPx = node.level * 24 + 16; 
+                              let fontStyle = "text-gray-700";
+                              
+                              if (node.level === 0) {
+                                rowStyle = "bg-gray-50 hover:bg-gray-100 border-t-2 border-gray-300";
+                                fontStyle = "font-bold text-gray-900";
+                              } else if (node.level === 1) {
+                                fontStyle = "font-semibold text-gray-800";
+                              } else if (!hasChildren) {
+                                fontStyle = "text-gray-500 text-xs";
+                              }
+
+                              const rowTotal = getRowTotal(node);
+                              let totalColorClass = "text-gray-900";
+                              if (viewMode === 'variance') {
+                                 if (rowTotal > 0) totalColorClass = "text-red-700";
+                                 if (rowTotal < 0) totalColorClass = "text-green-700";
+                              }
+
+                              return (
+                                <tr key={node.id} className={rowStyle}>
+                                  <td className={`py-2 border-r border-gray-100 whitespace-nowrap ${fontStyle}`} style={{ paddingLeft: `${indentPx}px`, paddingRight: '16px' }}>
+                                    <div className="flex items-center">
+                                      {hasChildren ? (
+                                        <button 
+                                          onClick={() => toggleRow(node.id)} 
+                                          className="mr-2 text-gray-400 hover:text-blue-600 focus:outline-none p-1 rounded hover:bg-blue-50 transition-colors"
+                                        >
+                                          {isExpanded ? <ChevronDown /> : <ChevronRight />}
+                                        </button>
+                                      ) : (
+                                        <span className="w-7 mr-2 inline-block"></span>
+                                      )}
+                                      <span className="truncate max-w-md" title={node.name}>{node.name}</span>
+                                    </div>
+                                  </td>
+
+                                  {displayPeriods.map((period, idx) => {
+                                    const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
+                                    return renderValueCell(node, period, prevPeriod);
+                                  })}
+                                  
+                                  <td className={`px-4 py-2 text-right font-bold border-l-2 border-gray-200 bg-gray-50/50 ${totalColorClass}`}>
+                                    {viewMode === 'variance' && rowTotal > 0 ? '+' : ''}
+                                    {metric === 'amount' ? formatCurrency(rowTotal) : formatCount(rowTotal)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                )}
+                
+                {/* --- WATERFALL TAB --- */}
+                {activeTab === 'waterfall' && (
+                    <div className="p-8 h-full bg-gray-50/50">
+                        {timeGrouping === 'ytd' || displayPeriods.length < 2 ? (
+                            <div className="py-20 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
+                                <ChartIcon />
+                                <p className="text-xl font-bold mt-4 mb-2 text-gray-800">Cannot Generate Waterfall</p>
+                                <p className="text-sm max-w-md mx-auto">The Waterfall Chart requires at least two periods to compare movement. Please change your <b>Group</b> setting at the top from <b>YTD</b> to <b>Monthly</b>, <b>Quarterly</b>, or <b>Annually</b>.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-800">Movement Variance Analysis</h3>
+                                        <p className="text-sm text-gray-500">Grouped by: {HIERARCHY_PRESETS[hierarchyIndex].keys[0]}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <label className="text-sm font-medium text-gray-600">Compare Period:</label>
+                                        <div className="relative">
+                                            <select 
+                                                className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-1.5 pl-3 pr-8 rounded-lg text-sm font-semibold shadow-sm outline-none focus:border-blue-500"
+                                                value={waterfallTargetIndex === -1 ? displayPeriods.length - 1 : waterfallTargetIndex}
+                                                onChange={(e) => setWaterfallTargetIndex(parseInt(e.target.value, 10))}
+                                            >
+                                                {displayPeriods.map((p, i) => {
+                                                    if (i === 0) return null;
+                                                    return <option key={i} value={i}>{p.label} vs {displayPeriods[i-1].label}</option>
+                                                })}
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                                <ChevronDown />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {renderWaterfallSVG()}
+                            </div>
+                        )}
+                    </div>
+                )}
               </div>
             </div>
           );
