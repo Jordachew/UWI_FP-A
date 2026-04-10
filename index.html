@@ -366,11 +366,13 @@
                 presetKeys.forEach((key, idx) => {
                   let val = row[key];
                   
+                  // CRITICAL FIX: Safe Fallbacks for UWI Export formatting anomalies + Force String type to prevent .localeCompare crashes
                   if (!val && key === 'Department name') val = row['Department'] || row['Descr_1'];
-                  if (!val && key === 'Acct. Description') val = row['Account'] || row['Descr'];
+                  if (!val && key === 'Acct. Description') val = row['Account'] || row['__EMPTY'] || row['Descr'];
                   if (!val && key === 'Posn Desc') val = row['Position'];
                   
-                  val = val || `Unknown ${key}`;
+                  // Force conversion to String to prevent React crashes when sorting number-only fields
+                  val = String(val || `Unknown ${key}`).trim();
                   
                   currentId = `${currentId}|${val}`;
                   
@@ -406,10 +408,10 @@
                   if (adjId && !knownEmpIds.has(adjId)) {
                     knownEmpIds.add(adjId); 
                     
-                    const dept = adj['Department name'] || adj['Department'] || 'TBD / New Hires';
-                    const acct = adj['Acct. Description'] || adj['Account'] || 'TBD / New Hires';
-                    const posn = adj['Posn Desc'] || adj['Position'] || 'TBD Position';
-                    const empName = adj['Name'] || adj['name'] || `New Hire (${adjId})`;
+                    const dept = String(adj['Department name'] || adj['Department'] || 'TBD / New Hires').trim();
+                    const acct = String(adj['Acct. Description'] || adj['Account'] || 'TBD / New Hires').trim();
+                    const posn = String(adj['Posn Desc'] || adj['Position'] || 'TBD Position').trim();
+                    const empName = String(adj['Name'] || adj['name'] || `New Hire (${adjId})`).trim();
 
                     const virtualRow = {
                       'Department name': dept,
@@ -431,7 +433,7 @@
                     let currentId = 'root';
 
                     presetKeys.forEach((key, idx) => {
-                      const val = virtualRow[key] || `Unknown ${key}`;
+                      const val = String(virtualRow[key] || `Unknown ${key}`).trim();
                       currentId = `${currentId}|${val}`;
                       if (!currentNode.children[val]) {
                         currentNode.children[val] = { id: currentId, name: val, level: idx + 1, children: {}, amounts: {}, empIds: {} };
@@ -679,7 +681,8 @@
               const hasChildrenToRender = node.children && Object.keys(node.children).length > 0;
               if (hasChildrenToRender && expandedRows.has(node.id)) {
                 Object.values(node.children)
-                  .sort((a, b) => a.name.localeCompare(b.name))
+                  // CRITICAL FIX: Explicit String cast to prevent crash on numeric strings like Position "00103711"
+                  .sort((a, b) => String(a.name).localeCompare(String(b.name)))
                   .forEach(flatten);
               }
             };
@@ -738,7 +741,7 @@
               // 2. Build Data Rows
               flatRows.forEach(node => {
                 const indent = "   ".repeat(node.level);
-                const row = [indent + node.name];
+                const row = [String(indent + node.name)]; // Force string export
                 
                 displayPeriods.forEach((period, idx) => {
                   const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
@@ -767,353 +770,3 @@
               XLSX.writeFile(wb, fileName);
             } catch (err) {
               console.error(err);
-              alert("Failed to export to Excel.");
-            }
-            setIsProcessing(false);
-          };
-
-          if (!dataModel) {
-            return (
-              <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
-                <div className="max-w-xl w-full bg-white rounded-xl shadow-lg p-10 text-center relative">
-                  
-                  {isProcessing ? (
-                     <div className="py-12">
-                       <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                       <h2 className="text-xl font-semibold text-gray-700">Loading Data Engine...</h2>
-                     </div>
-                  ) : (
-                    <>
-                      <img src={logoSrc} alt="UWI Logo" className="h-20 mx-auto mb-6 object-contain" onError={(e) => e.target.style.display='none'} />
-                      <h1 className="text-3xl font-bold text-blue-900 mb-2">UWI Payroll Analytics</h1>
-                      <p className="text-gray-500 mb-8">Upload your raw transactional data (.csv or .xlsx) to generate hierarchical reports, variance analyses, and projections.</p>
-                      
-                      <label className="block w-full border-2 border-dashed border-gray-300 rounded-xl p-10 cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-colors">
-                        <UploadIcon />
-                        <span className="text-blue-600 font-medium text-lg">Click to select Raw Data File</span>
-                        <p className="text-xs text-gray-400 mt-2 font-semibold">Supports .CSV and .XLSX</p>
-                        <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
-                      </label>
-                    </>
-                  )}
-
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-sm flex flex-col">
-              <div className="bg-white rounded-t-xl shadow-sm border-b border-gray-200 p-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative">
-                
-                <div className="absolute top-4 right-6 flex items-center gap-4">
-                  <label className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer flex items-center bg-indigo-50 px-2 py-1 rounded">
-                     <ExcelIcon />
-                     Upload Adjustments (.csv/.xlsx)
-                     <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={handleAdjustmentsUpload} ref={adjInputRef} />
-                  </label>
-                  <button 
-                    onClick={handleClearData} 
-                    className="text-xs text-red-600 hover:text-red-800 hover:underline font-medium"
-                  >
-                    Clear All Data
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-4 mt-6 xl:mt-0">
-                  <img src={logoSrc} alt="UWI Logo" className="h-16 w-auto object-contain hidden sm:block" onError={(e) => e.target.style.display='none'} />
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                       UWI Cost & Headcount Report
-                    </h1>
-                    <p className="text-gray-500 mt-1 flex items-center">
-                      {dataModel ? `Actuals through ${formatMonthLabel(dataModel.baseMonth)} • Projected through Jul-27` : 'Processing Data...'}
-                      {adjustmentsData && adjustmentsData.length > 0 && (
-                         <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                            {adjustmentsData.length} Adjustments / New Hires Active
-                         </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 mt-2 xl:mt-0">
-                  
-                  <label className="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-medium text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1">
-                     <ExcelIcon />
-                     Add / Update Raw Data
-                     <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
-                  </label>
-
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 p-1 rounded-lg">
-                     <div className="relative">
-                        <select 
-                          className="appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded text-xs font-medium shadow-sm outline-none focus:border-blue-500"
-                          value={hierarchyIndex} 
-                          onChange={(e) => setHierarchyIndex(parseInt(e.target.value, 10))}
-                          disabled={isProcessing}
-                        >
-                          {HIERARCHY_PRESETS.map((preset, idx) => (
-                            <option key={idx} value={idx}>View: {preset.label}</option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                        </div>
-                     </div>
-
-                     <div className="relative">
-                        <select 
-                          className="appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded text-xs font-medium shadow-sm outline-none focus:border-blue-500"
-                          value={timeGrouping} 
-                          onChange={(e) => setTimeGrouping(e.target.value)}
-                          disabled={isProcessing}
-                        >
-                          <option value="month">Group: Monthly</option>
-                          <option value="quarter">Group: Quarterly (FY)</option>
-                          <option value="annual">Group: Annually (FY)</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-                    <button 
-                      onClick={() => setMetric('amount')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'amount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      $ Dollar Value
-                    </button>
-                    <button 
-                      onClick={() => setMetric('headcount')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'headcount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      Headcount
-                    </button>
-                  </div>
-
-                  <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-                    <button 
-                      onClick={() => setViewMode('actuals')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'actuals' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      Actuals/FCST
-                    </button>
-                    <button 
-                      onClick={() => setViewMode('variance')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'variance' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      Variance Mode
-                    </button>
-                  </div>
-
-                  <button 
-                    onClick={collapseAll}
-                    disabled={isProcessing}
-                    className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 font-medium text-gray-700 text-xs shadow-sm"
-                  >
-                    Collapse All
-                  </button>
-
-                  <button 
-                    onClick={exportToExcel}
-                    disabled={isProcessing || !dataModel}
-                    className="px-3 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-md bg-white font-medium text-xs shadow-sm flex items-center gap-1 transition-colors"
-                  >
-                    <ExcelIcon />
-                    Export to Excel
-                  </button>
-                </div>
-              </div>
-              
-              {/* --- Dashboard Summary Section --- */}
-              {dashboardStats && (
-                <div className="bg-white shadow-sm border-b border-x border-gray-200 p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
-                  <div className="flex flex-col items-start min-w-[200px]">
-                    <span className="text-xs font-semibold tracking-wider text-gray-400 uppercase mb-1">Executive Summary</span>
-                    <div className="relative w-full">
-                      <select 
-                        className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-2 pl-3 pr-8 rounded-lg text-sm font-bold shadow-sm outline-none focus:border-blue-500 w-full"
-                        value={dashboardMonth} 
-                        onChange={(e) => setDashboardMonth(e.target.value)}
-                      >
-                        {[...dataModel.actualMonths, ...dataModel.forecastMonths].map(m => (
-                          <option key={m} value={m}>
-                            {formatMonthLabel(m)} {m === dataModel.baseMonth ? '(Base)' : dataModel.forecastMonths.includes(m) ? '(Forecast)' : '(Actual)'}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        <ChevronDown />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    {/* Amount Card */}
-                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
-                      <p className="text-xs font-medium text-blue-600 mb-1">Total Payroll Cost</p>
-                      <p className="text-2xl font-bold text-gray-900">{formatCurrency(dashboardStats.amount)}</p>
-                    </div>
-                    {/* Amount Variance Card */}
-                    <div className={`border rounded-xl p-4 ${dashboardStats.amountVar > 0 ? 'bg-red-50/50 border-red-100' : dashboardStats.amountVar < 0 ? 'bg-green-50/50 border-green-100' : 'bg-gray-50 border-gray-100'}`}>
-                      <p className="text-xs font-medium text-gray-500 mb-1">MoM Cost Variance</p>
-                      <div className="flex items-center">
-                        {dashboardStats.hasPrev ? (
-                          <>
-                            {dashboardStats.amountVar > 0 ? <span className="text-red-600"><TrendingUp /></span> : dashboardStats.amountVar < 0 ? <span className="text-green-600"><TrendingDown /></span> : null}
-                            <p className={`text-xl font-bold ${dashboardStats.amountVar > 0 ? 'text-red-700' : dashboardStats.amountVar < 0 ? 'text-green-700' : 'text-gray-700'}`}>
-                              {dashboardStats.amountVar > 0 ? '+' : ''}{formatCurrency(dashboardStats.amountVar)}
-                            </p>
-                          </>
-                        ) : <p className="text-xl font-bold text-gray-400">-</p>}
-                      </div>
-                    </div>
-                    {/* Headcount Card */}
-                    <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4">
-                      <p className="text-xs font-medium text-indigo-600 mb-1">Total Headcount</p>
-                      <p className="text-2xl font-bold text-gray-900">{formatCount(dashboardStats.hc)} <span className="text-xs font-normal text-gray-500 ml-1">unique IDs</span></p>
-                    </div>
-                    {/* Headcount Variance Card */}
-                    <div className={`border rounded-xl p-4 ${dashboardStats.hcVar > 0 ? 'bg-red-50/50 border-red-100' : dashboardStats.hcVar < 0 ? 'bg-green-50/50 border-green-100' : 'bg-gray-50 border-gray-100'}`}>
-                      <p className="text-xs font-medium text-gray-500 mb-1">MoM Headcount Var.</p>
-                      <div className="flex items-center">
-                        {dashboardStats.hasPrev ? (
-                          <>
-                            {dashboardStats.hcVar > 0 ? <span className="text-red-600"><TrendingUp /></span> : dashboardStats.hcVar < 0 ? <span className="text-green-600"><TrendingDown /></span> : null}
-                            <p className={`text-xl font-bold ${dashboardStats.hcVar > 0 ? 'text-red-700' : dashboardStats.hcVar < 0 ? 'text-green-700' : 'text-gray-700'}`}>
-                              {dashboardStats.hcVar > 0 ? '+' : ''}{formatCount(dashboardStats.hcVar)}
-                            </p>
-                          </>
-                        ) : <p className="text-xl font-bold text-gray-400">-</p>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-white shadow-sm rounded-b-xl flex-grow overflow-hidden flex flex-col border border-gray-200 relative">
-                {isProcessing && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center">
-                    <div className="text-blue-600 font-semibold text-lg animate-pulse flex items-center bg-white px-6 py-3 rounded-full shadow-lg border border-blue-100">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                      Updating Engine & Re-calculating Forecasts...
-                    </div>
-                  </div>
-                )}
-
-                <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
-                  {dataModel && (
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                        <tr>
-                          <th className="px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[350px]">
-                            {HIERARCHY_PRESETS[hierarchyIndex].label}
-                          </th>
-                          
-                          {displayPeriods.map((period, idx) => {
-                            const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                            const isFcst = period.type === 'forecast';
-                            const isMixed = period.type === 'mixed';
-                            const headerStyle = isFcst ? 'bg-indigo-50/80 text-indigo-900' : isMixed ? 'bg-blue-50/50 text-blue-900' : 'text-gray-700';
-
-                            return (
-                              <th key={period.key} className={`px-3 py-3 font-semibold text-right border-b border-gray-200 whitespace-nowrap ${headerStyle}`}>
-                                {viewMode === 'variance' && prevPeriod ? (
-                                  <span className="text-xs">{period.label} vs<br/>{prevPeriod.label}</span>
-                                ) : (
-                                  <>
-                                    {period.label}
-                                    {period.containsBaseMonth && <span className="ml-1 text-[10px] uppercase tracking-wider text-blue-600" title="Contains Base Month">(Base)</span>}
-                                    {isFcst && <span className="ml-1 text-[10px] uppercase opacity-70">(FCST)</span>}
-                                    {isMixed && <span className="ml-1 text-[10px] uppercase opacity-70">(Act+Fcst)</span>}
-                                  </>
-                                )}
-                              </th>
-                            );
-                          })}
-                          
-                          {/* --- Row Total Header --- */}
-                          <th className="px-4 py-3 font-bold text-right border-b border-l-2 border-gray-300 whitespace-nowrap bg-gray-200 text-gray-900 shadow-sm">
-                            Total
-                          </th>
-                        </tr>
-                      </thead>
-                      
-                      <tbody className="divide-y divide-gray-100">
-                        {flatRows.map((node) => {
-                          const isExpanded = expandedRows.has(node.id);
-                          const hasChildren = node.children && Object.keys(node.children).length > 0;
-                          
-                          let rowStyle = "hover:bg-gray-50 transition-colors group";
-                          let indentPx = node.level * 24 + 16; 
-                          let fontStyle = "text-gray-700";
-                          
-                          if (node.level === 0) {
-                            rowStyle = "bg-gray-50 hover:bg-gray-100 border-t-2 border-gray-300";
-                            fontStyle = "font-bold text-gray-900";
-                          } else if (node.level === 1) {
-                            fontStyle = "font-semibold text-gray-800";
-                          } else if (!hasChildren) {
-                            fontStyle = "text-gray-500 text-xs";
-                          }
-
-                          const rowTotal = getRowTotal(node);
-                          let totalColorClass = "text-gray-900";
-                          if (viewMode === 'variance') {
-                             if (rowTotal > 0) totalColorClass = "text-red-700";
-                             if (rowTotal < 0) totalColorClass = "text-green-700";
-                          }
-
-                          return (
-                            <tr key={node.id} className={rowStyle}>
-                              <td className={`py-2 border-r border-gray-100 whitespace-nowrap ${fontStyle}`} style={{ paddingLeft: `${indentPx}px`, paddingRight: '16px' }}>
-                                <div className="flex items-center">
-                                  {hasChildren ? (
-                                    <button 
-                                      onClick={() => toggleRow(node.id)} 
-                                      className="mr-2 text-gray-400 hover:text-blue-600 focus:outline-none p-1 rounded hover:bg-blue-50 transition-colors"
-                                    >
-                                      {isExpanded ? <ChevronDown /> : <ChevronRight />}
-                                    </button>
-                                  ) : (
-                                    <span className="w-7 mr-2 inline-block"></span>
-                                  )}
-                                  <span className="truncate max-w-md" title={node.name}>{node.name}</span>
-                                </div>
-                              </td>
-
-                              {displayPeriods.map((period, idx) => {
-                                const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                                return renderValueCell(node, period, prevPeriod);
-                              })}
-                              
-                              {/* --- Row Total Cell --- */}
-                              <td className={`px-4 py-2 text-right font-bold border-l-2 border-gray-200 bg-gray-50/50 ${totalColorClass}`}>
-                                {viewMode === 'variance' && rowTotal > 0 ? '+' : ''}
-                                {metric === 'amount' ? formatCurrency(rowTotal) : formatCount(rowTotal)}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        // Render the React application
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
