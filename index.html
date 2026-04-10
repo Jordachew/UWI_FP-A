@@ -219,7 +219,9 @@
           { label: 'Position > Faculty/Dept > Employee', keys: ['Posn Desc', 'Department name', 'Name'] },
           { label: 'Faculty / Department Only', keys: ['Department name'] },
           { label: 'Account Category > Faculty', keys: ['Acct. Description', 'Department name'] },
-          { label: 'Position Only', keys: ['Posn Desc'] }
+          { label: 'Position Only', keys: ['Posn Desc'] },
+          { label: 'Group Only', keys: ['Group'] },
+          { label: 'Sal Plan Only', keys: ['Sal Plan'] }
         ];
 
         function App() {
@@ -412,13 +414,17 @@
                     const acct = String(adj['Acct. Description'] || adj['Account'] || 'TBD / New Hires').trim();
                     const posn = String(adj['Posn Desc'] || adj['Position'] || 'TBD Position').trim();
                     const empName = String(adj['Name'] || adj['name'] || `New Hire (${adjId})`).trim();
+                    const grp = String(adj['Group'] || 'TBD Group').trim();
+                    const salPlan = String(adj['Sal Plan'] || adj['sal plan'] || 'TBD Plan').trim();
 
                     const virtualRow = {
                       'Department name': dept,
                       'Acct. Description': acct,
                       'Posn Desc': posn,
                       'Name': empName,
-                      'ID': adjId
+                      'ID': adjId,
+                      'Group': grp,
+                      'Sal Plan': salPlan
                     };
 
                     const addDummyStats = (node) => {
