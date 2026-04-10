@@ -90,62 +90,53 @@ const loadExcelParser = async () => {
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
     script.onload = () => resolve(window.XLSX);
-    script.onerror = reject;
+    script.onerror = () => {
+      alert("Failed to load Excel parsing engine. Please check your internet connection or ad-blocker.");
+      reject(new Error("CDN Load Failed"));
+    };
     document.head.appendChild(script);
   });
 };
 
-function parseCSV(text) {
-  text = text.replace(/\r\n/g, '\n');
-  let p = '', row = [''], ret = [row], i = 0, r = 0, s = !0, l;
-  for (l of text) {
-    if ('"' === l) {
-      if (s && l === p) row[i] += l;
-      s = !s;
-    } else if (',' === l && s) l = row[++i] = '';
-    else if ('\n' === l && s) {
-      row = ret[++r] = [l = '']; i = 0;
-    } else row[i] += l;
-    p = l;
-  }
-  
-  const filtered = ret.filter(r => r.length > 1 || r[0].trim() !== '');
-  const headers = filtered[0].map(h => h.trim());
-  const data = [];
-  
-  for (let j = 1; j < filtered.length; j++) {
-    const obj = {};
-    filtered[j].forEach((val, index) => {
-      if (headers[index]) obj[headers[index]] = (val || '').trim();
-    });
-    data.push(obj);
-  }
-  return data;
-}
-
 // --- Formatting Helpers ---
 function parseDateStrToMonthKey(dateStr) {
-  if (!dateStr) return null;
-  // Handle Excel Date formats or string DD/MM/YYYY formats
-  const str = String(dateStr);
-  const parts = str.split('/');
+  if (dateStr === null || dateStr === undefined || dateStr === '') return null;
   
-  if (parts.length === 3) {
-    // Check if format is MM/DD/YYYY or DD/MM/YYYY. UWI sets use DD/MM/YYYY.
-    let m = parts[1];
-    let y = parts[2];
-    
-    // If year is somehow first (YYYY/MM/DD)
-    if (parts[0].length === 4) {
-      y = parts[0];
-      m = parts[1];
-    } else if (parts[2].length === 2) {
-      // 2-digit year (e.g. 8/17/25) -> convert to 2025
-      y = `20${parts[2]}`;
-    }
-    
-    return `${y}-${m.padStart(2, '0')}`;
+  // 1. Handle Excel Raw Serial Date (e.g., 45520) which happens when using raw: true
+  if (typeof dateStr === 'number' || (!isNaN(dateStr) && !String(dateStr).includes('/') && !String(dateStr).includes('-'))) {
+    const serial = parseFloat(dateStr);
+    const dateObj = new Date(Math.round((serial - 25569) * 86400 * 1000));
+    dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
   }
+
+  // 2. Handle string formats
+  const str = String(dateStr).trim();
+  
+  if (str.includes('-')) {
+    const parts = str.split('-');
+    if (parts.length >= 2 && parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, '0')}`;
+    }
+  }
+
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      let m = parts[1];
+      let y = parts[2];
+      if (parts[0].length === 4) {
+        y = parts[0];
+        m = parts[1];
+      } else if (parts[2].length === 2) {
+        y = `20${parts[2]}`;
+      }
+      return `${y}-${m.padStart(2, '0')}`;
+    }
+  }
+  
   return null;
 }
 
@@ -179,17 +170,10 @@ function parseAmount(val) {
   
   let strVal = String(val).trim();
   
-  // Handle accounting format e.g. "(1,234.56)" -> "-1234.56"
-  let isNegative = false;
-  if (strVal.startsWith('(') && strVal.endsWith(')')) {
-    isNegative = true;
-    strVal = strVal.slice(1, -1);
-  } else if (strVal.startsWith('-')) {
-    isNegative = true;
-    strVal = strVal.slice(1);
-  }
+  // Safely check for negative anywhere (minus sign, or accounting parenthesis)
+  const isNegative = strVal.includes('-') || (strVal.includes('(') && strVal.includes(')'));
   
-  // Remove all non-numeric characters except the decimal point (removes $, commas, spaces)
+  // Remove all non-numeric characters except the decimal point (removes $, commas, spaces, minus signs, parentheses)
   strVal = strVal.replace(/[^0-9.]/g, '');
   
   let num = parseFloat(strVal);
@@ -245,29 +229,22 @@ export default function App() {
 
   const processFile = async (file, onComplete) => {
     setIsProcessing(true);
-    const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
-
     try {
-      if (isExcel) {
-        const XLSX = await loadExcelParser();
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          const data = new Uint8Array(evt.target.result);
-          const workbook = XLSX.read(data, {type: 'array'});
-          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          const parsed = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: "" }); // raw:false ensures dates parse nicely as strings
-          onComplete(parsed);
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          onComplete(parseCSV(evt.target.result));
-        };
-        reader.readAsText(file);
-      }
+      // Force SheetJS for ALL files (.csv, .xlsx, etc.) to guarantee perfect header mapping & data extraction
+      const XLSX = await loadExcelParser();
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        
+        // IMPORTANT: raw: true prevents Excel formatting from stripping decimal precision from Amount columns
+        const parsed = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: "" }); 
+        onComplete(parsed);
+      };
+      reader.readAsArrayBuffer(file);
     } catch (e) {
-      alert("Error reading file. If using Excel, please ensure it is not password protected.");
+      alert("Error reading file. Please ensure the file is not password protected.");
       setIsProcessing(false);
     }
   };
@@ -341,7 +318,7 @@ export default function App() {
       rawData.forEach(row => {
         const dateStr = row['Pay Period End'];
         const monthKey = parseDateStrToMonthKey(dateStr);
-        if (!monthKey) return;
+        if (!monthKey) return; // Skip invalid rows
         
         allMonthsSet.add(monthKey);
 
@@ -364,7 +341,15 @@ export default function App() {
         let currentId = 'root';
 
         presetKeys.forEach((key, idx) => {
-          const val = row[key] || `Unknown ${key}`;
+          let val = row[key];
+          
+          // Robust Fallbacks for UWI Export formatting anomalies (Duplicate Descr columns, missing data)
+          if (!val && key === 'Department name') val = row['Department'] || row['Descr_1'];
+          if (!val && key === 'Acct. Description') val = row['Account'] || row['Descr'];
+          if (!val && key === 'Posn Desc') val = row['Position'];
+          
+          val = val || `Unknown ${key}`;
+          
           currentId = `${currentId}|${val}`;
           
           if (!currentNode.children[val]) {
@@ -385,6 +370,7 @@ export default function App() {
 
       const actualMonths = Array.from(allMonthsSet).sort();
       if (actualMonths.length === 0) {
+        alert("No valid dates found in the data. Please ensure your CSV has a column named 'Pay Period End' with valid dates.");
         setIsProcessing(false);
         return;
       }
@@ -398,10 +384,8 @@ export default function App() {
           const adjId = String(adj['ID'] || adj['id']).trim();
           
           if (adjId && !knownEmpIds.has(adjId)) {
-            // We have a new hire! Insert a dummy node for them in the base month.
-            knownEmpIds.add(adjId); // prevent duplicates
+            knownEmpIds.add(adjId); 
             
-            // Map optional columns from adjustments CSV
             const dept = adj['Department name'] || adj['Department'] || 'TBD / New Hires';
             const acct = adj['Acct. Description'] || adj['Account'] || 'TBD / New Hires';
             const posn = adj['Posn Desc'] || adj['Position'] || 'TBD Position';
@@ -416,9 +400,9 @@ export default function App() {
             };
 
             const addDummyStats = (node) => {
-              node.amounts[baseMonth] = (node.amounts[baseMonth] || 0) + 0; // $0 base salary
+              node.amounts[baseMonth] = (node.amounts[baseMonth] || 0) + 0; 
               if (!node.empIds[baseMonth]) node.empIds[baseMonth] = new Set();
-              node.empIds[baseMonth].add(adjId); // Give them 1 headcount
+              node.empIds[baseMonth].add(adjId);
             };
 
             addDummyStats(tree);
@@ -455,439 +439,4 @@ export default function App() {
       // Pre-calculate leaf splits to prevent double-counting split employees during adjustments
       const empLeafCount = {};
       const countLeaves = (node) => {
-          if (!node.children || Object.keys(node.children).length === 0) {
-              if (node.empIds[baseMonth]) {
-                  node.empIds[baseMonth].forEach(id => {
-                      empLeafCount[id] = (empLeafCount[id] || 0) + 1;
-                  });
-              }
-          } else {
-              Object.values(node.children).forEach(countLeaves);
-          }
-      };
-      countLeaves(tree);
-
-      // 5. Apply Forecasts Bottom-Up (Base + Adjustments)
-      const applyForecasts = (node) => {
-          const baseAmount = node.amounts[baseMonth] || 0;
-          const baseEmpSet = node.empIds[baseMonth] || new Set();
-          const hasChildren = node.children && Object.keys(node.children).length > 0;
-
-          if (hasChildren) {
-              // Give children forecasts first
-              Object.values(node.children).forEach(applyForecasts);
-
-              // Rollup amounts and headcount from children
-              forecastMonths.forEach(fm => {
-                  let sumAmount = 0;
-                  let sumIds = new Set();
-                  Object.values(node.children).forEach(child => {
-                      sumAmount += child.amounts[fm];
-                      if (child.empIds[fm]) {
-                          child.empIds[fm].forEach(id => sumIds.add(id));
-                      }
-                  });
-                  node.amounts[fm] = sumAmount;
-                  node.empIds[fm] = sumIds;
-              });
-          } else {
-              // Leaf node: Apply Base + Adjustments
-              forecastMonths.forEach(fm => {
-                  let adjAmount = 0;
-                  if (adjustmentsData) {
-                      adjustmentsData.forEach(adj => {
-                          let m = adj['Month'] || adj['month'];
-                          m = parseDateStrToMonthKey(m) || m; // attempt fix if user supplied raw date format instead of YYYY-MM
-                          
-                          const id = String(adj['ID'] || adj['id']).trim();
-                          const amt = parseAmount(adj['Amount'] || adj['amount']);
-
-                          if (m === fm && baseEmpSet.has(id)) {
-                              const splits = empLeafCount[id] || 1;
-                              adjAmount += (amt / splits);
-                          }
-                      });
-                  }
-                  node.amounts[fm] = baseAmount + adjAmount;
-                  node.empIds[fm] = new Set(baseEmpSet);
-              });
-          }
-      };
-      
-      applyForecasts(tree);
-
-      setDataModel({ tree, actualMonths, forecastMonths, baseMonth });
-      setExpandedRows(new Set(['root']));
-      setIsProcessing(false);
-    }, 50);
-
-  }, [rawData, adjustmentsData, hierarchyIndex]);
-
-  const toggleRow = (id) => {
-    setExpandedRows(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const collapseAll = () => setExpandedRows(new Set(['root']));
-
-  // Calculate Display Periods
-  const displayPeriods = useMemo(() => {
-    if (!dataModel) return [];
-    const allMonths = [...dataModel.actualMonths, ...dataModel.forecastMonths];
-    const groups = {};
-
-    allMonths.forEach(m => {
-      const [y, mm] = m.split('-');
-      let key, label;
-      
-      if (timeGrouping === 'annual') {
-        key = y; 
-        label = y;
-      } else if (timeGrouping === 'quarter') {
-        const q = Math.ceil(parseInt(mm, 10) / 3);
-        key = `${y}-Q${q}`; 
-        label = `Q${q} ${y}`;
-      } else { // 'month'
-        key = m; 
-        label = formatMonthLabel(m);
-      }
-
-      if (!groups[key]) groups[key] = { key, label, months: [], type: 'actual', containsBaseMonth: false };
-      groups[key].months.push(m);
-      if (m === dataModel.baseMonth) groups[key].containsBaseMonth = true;
-    });
-
-    return Object.values(groups).sort((a,b) => a.key.localeCompare(b.key)).map(g => {
-      const hasActual = g.months.some(m => dataModel.actualMonths.includes(m));
-      const hasForecast = g.months.some(m => dataModel.forecastMonths.includes(m));
-      
-      if (hasActual && hasForecast) g.type = 'mixed';
-      else if (hasForecast) g.type = 'forecast';
-      else g.type = 'actual';
-      
-      return g;
-    });
-  }, [dataModel, timeGrouping]);
-
-  const getMetricValue = useCallback((node, period) => {
-    if (metric === 'amount') {
-      return period.months.reduce((sum, m) => sum + (node.amounts[m] || 0), 0);
-    }
-    if (metric === 'headcount') {
-      const combinedSet = new Set();
-      period.months.forEach(m => {
-        if (node.empIds[m]) node.empIds[m].forEach(id => combinedSet.add(id));
-      });
-      return combinedSet.size;
-    }
-    return 0;
-  }, [metric]);
-
-  const renderValueCell = useCallback((node, period, prevPeriod) => {
-    const isVariance = viewMode === 'variance';
-    
-    if (isVariance) {
-      if (!prevPeriod) return <td key={period.key} className="px-3 py-2 text-right text-gray-400">-</td>;
-      const currentVal = getMetricValue(node, period);
-      const prevVal = getMetricValue(node, prevPeriod);
-      const diff = currentVal - prevVal;
-      
-      let colorClass = "text-gray-700";
-      if (diff > 0) colorClass = "text-red-600 font-medium"; 
-      if (diff < 0) colorClass = "text-green-600 font-medium";
-      if (metric === 'amount' && Math.abs(diff) < 0.01) colorClass = "text-gray-400";
-      if (metric === 'headcount' && diff === 0) colorClass = "text-gray-400";
-
-      const formattedDiff = metric === 'amount' ? formatCurrency(diff) : formatCount(diff);
-      const displayDiff = diff > 0 ? `+${formattedDiff}` : formattedDiff;
-
-      return (
-        <td key={period.key} className={`px-3 py-2 text-right ${colorClass} ${period.type === 'forecast' ? 'bg-indigo-50/30' : ''}`}>
-          {displayDiff}
-        </td>
-      );
-    }
-
-    // Actuals / Forecasts
-    const val = getMetricValue(node, period);
-    return (
-      <td key={period.key} className={`px-3 py-2 text-right text-gray-800 ${period.type === 'forecast' ? 'bg-indigo-50/50' : ''}`}>
-        {metric === 'amount' ? formatCurrency(val) : formatCount(val)}
-      </td>
-    );
-  }, [metric, viewMode, getMetricValue]);
-
-  // Flatten tree based on expanded state for rendering
-  const flatRows = useMemo(() => {
-    if (!dataModel) return [];
-    const rows = [];
-    const flatten = (node) => {
-      rows.push(node);
-      const hasChildrenToRender = node.children && Object.keys(node.children).length > 0;
-      if (hasChildrenToRender && expandedRows.has(node.id)) {
-        Object.values(node.children)
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .forEach(flatten);
-      }
-    };
-    flatten(dataModel.tree);
-    return rows;
-  }, [dataModel, expandedRows]);
-
-
-  if (!dataModel) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
-        <div className="max-w-xl w-full bg-white rounded-xl shadow-lg p-10 text-center relative">
-          
-          {isProcessing ? (
-             <div className="py-12">
-               <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-               <h2 className="text-xl font-semibold text-gray-700">Loading Data Engine...</h2>
-             </div>
-          ) : (
-            <>
-              <img src="logo_uwi_lrg.jpg" alt="UWI Logo" className="h-20 mx-auto mb-6 object-contain" onError={(e) => e.target.style.display='none'} />
-              <h1 className="text-3xl font-bold text-blue-900 mb-2">UWI Payroll Analytics</h1>
-              <p className="text-gray-500 mb-8">Upload your raw transactional data (.csv or .xlsx) to generate hierarchical reports, variance analyses, and projections.</p>
-              
-              <label className="block w-full border-2 border-dashed border-gray-300 rounded-xl p-10 cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-colors">
-                <UploadIcon />
-                <span className="text-blue-600 font-medium text-lg">Click to select Raw Data File</span>
-                <p className="text-xs text-gray-400 mt-2 font-semibold">Supports .CSV and .XLSX</p>
-                <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
-              </label>
-            </>
-          )}
-
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-sm flex flex-col">
-      {/* Header Panel */}
-      <div className="bg-white rounded-t-xl shadow-sm border-b border-gray-200 p-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative">
-        
-        {/* Top Right: Actions */}
-        <div className="absolute top-4 right-6 flex items-center gap-4">
-          <label className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer flex items-center bg-indigo-50 px-2 py-1 rounded">
-             <ExcelIcon />
-             Upload Adjustments (.csv/.xlsx)
-             <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={handleAdjustmentsUpload} ref={adjInputRef} />
-          </label>
-          <button 
-            onClick={handleClearData} 
-            className="text-xs text-red-600 hover:text-red-800 hover:underline font-medium"
-          >
-            Clear All Data
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4 mt-6 xl:mt-0">
-          <img src="logo_uwi_lrg.jpg" alt="UWI Logo" className="h-16 w-auto object-contain hidden sm:block" onError={(e) => e.target.style.display='none'} />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-               UWI Cost & Headcount Report
-            </h1>
-            <p className="text-gray-500 mt-1 flex items-center">
-              {dataModel ? `Actuals through ${formatMonthLabel(dataModel.baseMonth)} • Projected through Jul-27` : 'Processing Data...'}
-              {adjustmentsData && adjustmentsData.length > 0 && (
-                 <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                    {adjustmentsData.length} Adjustments / New Hires Active
-                 </span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 mt-2 xl:mt-0">
-          
-          <label className="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-medium text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1">
-             <ExcelIcon />
-             Add / Update Raw Data
-             <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
-          </label>
-
-          {/* Controls: Structure & Time */}
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 p-1 rounded-lg">
-             <div className="relative">
-                <select 
-                  className="appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded text-xs font-medium shadow-sm outline-none focus:border-blue-500"
-                  value={hierarchyIndex} 
-                  onChange={(e) => setHierarchyIndex(parseInt(e.target.value, 10))}
-                  disabled={isProcessing}
-                >
-                  {HIERARCHY_PRESETS.map((preset, idx) => (
-                    <option key={idx} value={idx}>View: {preset.label}</option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
-             </div>
-
-             <div className="relative">
-                <select 
-                  className="appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded text-xs font-medium shadow-sm outline-none focus:border-blue-500"
-                  value={timeGrouping} 
-                  onChange={(e) => setTimeGrouping(e.target.value)}
-                  disabled={isProcessing}
-                >
-                  <option value="month">Group: Monthly</option>
-                  <option value="quarter">Group: Quarterly</option>
-                  <option value="annual">Group: Annually</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
-             </div>
-          </div>
-
-          {/* Controls: Metrics */}
-          <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-            <button 
-              onClick={() => setMetric('amount')}
-              disabled={isProcessing}
-              className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'amount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              $ Dollar Value
-            </button>
-            <button 
-              onClick={() => setMetric('headcount')}
-              disabled={isProcessing}
-              className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'headcount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              Headcount
-            </button>
-          </div>
-
-          <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-            <button 
-              onClick={() => setViewMode('actuals')}
-              disabled={isProcessing}
-              className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'actuals' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              Actuals/FCST
-            </button>
-            <button 
-              onClick={() => setViewMode('variance')}
-              disabled={isProcessing}
-              className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'variance' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              Variance Mode
-            </button>
-          </div>
-
-          <button 
-            onClick={collapseAll}
-            disabled={isProcessing}
-            className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 font-medium text-gray-700 text-xs shadow-sm"
-          >
-            Collapse All
-          </button>
-        </div>
-      </div>
-
-      {/* Table Panel */}
-      <div className="bg-white shadow-sm rounded-b-xl flex-grow overflow-hidden flex flex-col border border-gray-200 relative">
-        {isProcessing && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center">
-            <div className="text-blue-600 font-semibold text-lg animate-pulse flex items-center bg-white px-6 py-3 rounded-full shadow-lg border border-blue-100">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              Updating Engine & Re-calculating Forecasts...
-            </div>
-          </div>
-        )}
-
-        <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
-          {dataModel && (
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                <tr>
-                  <th className="px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[350px]">
-                    {HIERARCHY_PRESETS[hierarchyIndex].label}
-                  </th>
-                  
-                  {displayPeriods.map((period, idx) => {
-                    const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                    const isFcst = period.type === 'forecast';
-                    const isMixed = period.type === 'mixed';
-                    const headerStyle = isFcst ? 'bg-indigo-50/80 text-indigo-900' : isMixed ? 'bg-blue-50/50 text-blue-900' : 'text-gray-700';
-
-                    return (
-                      <th key={period.key} className={`px-3 py-3 font-semibold text-right border-b border-gray-200 whitespace-nowrap ${headerStyle}`}>
-                        {viewMode === 'variance' && prevPeriod ? (
-                          <span className="text-xs">{period.label} vs<br/>{prevPeriod.label}</span>
-                        ) : (
-                          <>
-                            {period.label}
-                            {period.containsBaseMonth && <span className="ml-1 text-[10px] uppercase tracking-wider text-blue-600" title="Contains Base Month">(Base)</span>}
-                            {isFcst && <span className="ml-1 text-[10px] uppercase opacity-70">(FCST)</span>}
-                            {isMixed && <span className="ml-1 text-[10px] uppercase opacity-70">(Act+Fcst)</span>}
-                          </>
-                        )}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              
-              <tbody className="divide-y divide-gray-100">
-                {flatRows.map((node) => {
-                  const isExpanded = expandedRows.has(node.id);
-                  const hasChildren = node.children && Object.keys(node.children).length > 0;
-                  
-                  // Dynamic indenting based on level
-                  let rowStyle = "hover:bg-gray-50 transition-colors group";
-                  let indentPx = node.level * 24 + 16; 
-                  let fontStyle = "text-gray-700";
-                  
-                  if (node.level === 0) {
-                    rowStyle = "bg-gray-50 hover:bg-gray-100 border-t-2 border-gray-300";
-                    fontStyle = "font-bold text-gray-900";
-                  } else if (node.level === 1) {
-                    fontStyle = "font-semibold text-gray-800";
-                  } else if (!hasChildren) {
-                    fontStyle = "text-gray-500 text-xs"; // Leaf node styling
-                  }
-
-                  return (
-                    <tr key={node.id} className={rowStyle}>
-                      <td className={`py-2 border-r border-gray-100 whitespace-nowrap ${fontStyle}`} style={{ paddingLeft: `${indentPx}px`, paddingRight: '16px' }}>
-                        <div className="flex items-center">
-                          {hasChildren ? (
-                            <button 
-                              onClick={() => toggleRow(node.id)} 
-                              className="mr-2 text-gray-400 hover:text-blue-600 focus:outline-none p-1 rounded hover:bg-blue-50 transition-colors"
-                            >
-                              {isExpanded ? <ChevronDown /> : <ChevronRight />}
-                            </button>
-                          ) : (
-                            <span className="w-7 mr-2 inline-block"></span>
-                          )}
-                          <span className="truncate max-w-md" title={node.name}>{node.name}</span>
-                        </div>
-                      </td>
-
-                      {/* Data Cells */}
-                      {displayPeriods.map((period, idx) => {
-                        const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                        return renderValueCell(node, period, prevPeriod);
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+          if (!node.children || Object.keys(node.children).length
