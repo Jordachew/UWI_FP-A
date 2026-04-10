@@ -209,10 +209,31 @@
           return isNegative ? -num : num;
         }
         
+        // --- Robust Org Number Extractor ---
+        function getOrgValue(row) {
+            // 1. Try exact matches first
+            if (row['Org. #'] !== undefined) return row['Org. #'];
+            if (row['Org #'] !== undefined) return row['Org #'];
+            if (row['Org.'] !== undefined) return row['Org.'];
+            if (row['Org'] !== undefined) return row['Org'];
+            
+            // 2. Fuzzy match to bypass hidden spaces/formatting
+            const orgKey = Object.keys(row).find(k => {
+                const clean = String(k).replace(/\s+/g, '').toLowerCase();
+                return clean === 'org.#' || clean === 'org#' || clean === 'org' || clean === 'orgnum';
+            });
+            
+            return orgKey ? row[orgKey] : null;
+        }
+
         function getFacultyFromOrg(orgNum) {
-          if (!orgNum) return 'Admin & Other Units';
-          const num = parseInt(String(orgNum).trim(), 10);
-          if (isNaN(num)) return 'Admin & Other Units';
+          if (orgNum === null || orgNum === undefined || orgNum === '') return 'Admin & Other Units';
+          
+          // Extract the first sequence of digits. This handles strings like " 7403", "Org7403", etc.
+          const match = String(orgNum).match(/\d+/);
+          if (!match) return 'Admin & Other Units';
+
+          const num = parseInt(match[0], 10);
 
           if (num >= 7100 && num <= 7199) return 'Faculty of Humanities & Education';
           if (num >= 7200 && num <= 7299) return 'Faculty of Law';
@@ -238,6 +259,8 @@
           { label: 'Position > Dept > Emp', keys: ['Posn Desc', 'Department name', 'Name'] },
           { label: 'Department Only', keys: ['Department name'] },
           { label: 'Account Category > Dept', keys: ['Acct. Description', 'Department name'] },
+          { label: 'Account Number Only', keys: ['Account #'] },
+          { label: 'Account # > Account Category', keys: ['Account #', 'Acct. Description'] },
           { label: 'Position Only', keys: ['Posn Desc'] },
           { label: 'Group Only', keys: ['Group'] },
           { label: 'Sal Plan Only', keys: ['Sal Plan'] }
@@ -391,7 +414,8 @@
                   if (!val && key === 'Department name') val = row['Department'] || row['Descr_1'];
                   if (!val && key === 'Acct. Description') val = row['Account'] || row['__EMPTY'] || row['Descr'];
                   if (!val && key === 'Posn Desc') val = row['Position'];
-                  if (key === 'Mapped Faculty') val = getFacultyFromOrg(row['Org. #'] || row['Org'] || row['Org.']);
+                  if (!val && key === 'Account #') val = row['Account Number'] || row['AccountNum'];
+                  if (key === 'Mapped Faculty') val = getFacultyFromOrg(getOrgValue(row));
                   
                   // Force conversion to String to prevent React crashes when sorting number-only fields
                   val = String(val || `Unknown ${key}`).trim();
@@ -436,8 +460,8 @@
                     const empName = String(adj['Name'] || adj['name'] || `New Hire (${adjId})`).trim();
                     const grp = String(adj['Group'] || 'TBD Group').trim();
                     const salPlan = String(adj['Sal Plan'] || adj['sal plan'] || 'TBD Plan').trim();
-                    const orgNum = adj['Org. #'] || adj['Org'] || adj['Org.'] || '';
-                    const mappedFac = getFacultyFromOrg(orgNum);
+                    const acctNum = String(adj['Account #'] || adj['Account Number'] || 'TBD Account #').trim();
+                    const mappedFac = getFacultyFromOrg(getOrgValue(adj));
 
                     const virtualRow = {
                       'Mapped Faculty': mappedFac,
@@ -447,7 +471,8 @@
                       'Name': empName,
                       'ID': adjId,
                       'Group': grp,
-                      'Sal Plan': salPlan
+                      'Sal Plan': salPlan,
+                      'Account #': acctNum
                     };
 
                     const addDummyStats = (node) => {
@@ -743,7 +768,6 @@
               const hasChildrenToRender = node.children && Object.keys(node.children).length > 0;
               if (hasChildrenToRender && expandedRows.has(node.id)) {
                 Object.values(node.children)
-                  // CRITICAL FIX: Explicit String cast to prevent crash on numeric strings like Position "00103711"
                   .sort((a, b) => String(a.name).localeCompare(String(b.name)))
                   .forEach(flatten);
               }
