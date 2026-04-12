@@ -173,10 +173,10 @@
           
           if (typeof dateStr === 'number' || (!isNaN(dateStr) && !String(dateStr).includes('/') && !String(dateStr).includes('-'))) {
             const serial = parseFloat(dateStr);
-            const dateObj = new Date(Math.round((serial - 25569) * 86400 * 1000));
-            dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
-            const y = dateObj.getFullYear();
-            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            // Strict UTC offset prevents local timezone anomalies from shifting midnight to previous day
+            const dateObj = new Date(Date.UTC(1970, 0, Math.round(serial) - 25569 + 1));
+            const y = dateObj.getUTCFullYear();
+            const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
             return `${y}-${m}`;
           }
 
@@ -300,7 +300,7 @@
           const [isProcessing, setIsProcessing] = useState(true); 
           
           // Unified Assumptions State
-          const [assumptions, setAssumptions] = useState({ oneOffs: [], increments: [], union: [] });
+          const [assumptions, setAssumptions] = useState({ oneOffs: [], increments: [], union: [], startMonthFilter: '' });
           const [showAssumptions, setShowAssumptions] = useState(false);
           const [activeAssumptionTab, setActiveAssumptionTab] = useState('union');
           
@@ -329,10 +329,8 @@
             try {
               let actualFile = file;
 
-              // Check if it's a ZIP file and extract it
               if (file.name.toLowerCase().endsWith('.zip')) {
                   const zip = await JSZip.loadAsync(file);
-                  // Find the first valid file inside the ZIP (ignore Mac meta folders)
                   const filename = Object.keys(zip.files).find(name => !name.startsWith('__MACOSX') && !name.startsWith('.') && !zip.files[name].dir);
                   if (!filename) throw new Error("No valid Excel or CSV file found inside the ZIP archive.");
                   
@@ -354,11 +352,9 @@
                   };
                   reader.readAsArrayBuffer(actualFile);
               } else {
-                  // Parse as CSV
                   const reader = new FileReader();
                   reader.onload = (evt) => {
                       const text = evt.target.result;
-                      // Fallback manual CSV parser
                       let p = '', row = [''], ret = [row], i = 0, r = 0, s = !0, l;
                       for (l of text) {
                           if ('"' === l) {
@@ -392,16 +388,15 @@
             }
           };
 
-          // On Mount Initialization (Handles Local DB + GitHub Auto-Loading)
           useEffect(() => {
             const initApp = async () => {
               try {
                 const savedAdj = await loadFromDB('assumptions');
                 if (savedAdj) {
                     if (Array.isArray(savedAdj)) {
-                        setAssumptions({ oneOffs: savedAdj, increments: [], union: [] });
+                        setAssumptions({ oneOffs: savedAdj, increments: [], union: [], startMonthFilter: '' });
                     } else {
-                        setAssumptions(savedAdj);
+                        setAssumptions({ startMonthFilter: '', ...savedAdj });
                     }
                 }
 
@@ -409,7 +404,6 @@
                 if (savedData && savedData.length > 0) {
                     setRawData(savedData);
                 } else {
-                    // Try fetching default_data.zip first (for large 40MB+ compressed datasets)
                     try {
                         const resZip = await fetch('./default_data.zip');
                         if (resZip.ok) {
@@ -421,9 +415,8 @@
                             });
                             return; 
                         }
-                    } catch (zipErr) { console.log("No zip file found."); }
+                    } catch (zipErr) {}
 
-                    // Try fetching default_data.xlsx
                     try {
                         const resXlsx = await fetch('./default_data.xlsx');
                         if (resXlsx.ok) {
@@ -435,9 +428,8 @@
                             });
                             return; 
                         }
-                    } catch (xlsxErr) { console.log("No xlsx file found."); }
+                    } catch (xlsxErr) {}
                     
-                    // Try fetching default_data.csv
                     try {
                         const resCsv = await fetch('./default_data.csv');
                         if (resCsv.ok) {
@@ -449,9 +441,8 @@
                             });
                             return; 
                         }
-                    } catch (csvErr) { console.log("No csv file found."); }
+                    } catch (csvErr) {}
 
-                    // No default data found, unblock UI
                     setIsProcessing(false);
                 }
               } catch (err) {
@@ -479,36 +470,12 @@
             });
           };
 
-          const handleAdjustmentsUpload = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            processFile(file, async (parsed) => {
-              if (parsed.length > 0 && !parsed[0]['ID'] && !parsed[0]['Month'] && !parsed[0]['Amount']) {
-                  alert("Invalid format. Ensure your file has columns named: ID, Month, Amount");
-                  setIsProcessing(false);
-                  if (adjInputRef.current) adjInputRef.current.value = null;
-                  return;
-              }
-
-              let finalAdj = parsed;
-              if (adjustmentsData && adjustmentsData.length > 0) {
-                  const doAppend = window.confirm(`Existing Adjustments found.\n\nClick [OK] to APPEND these new adjustments.\nClick [Cancel] to OVERWRITE existing adjustments.`);
-                  if (doAppend) finalAdj = [...adjustmentsData, ...parsed];
-              }
-
-              await saveToDB('adjustments', finalAdj).catch(console.error);
-              setAdjustmentsData(finalAdj);
-              if (adjInputRef.current) adjInputRef.current.value = null;
-            });
-          };
-
           const handleClearData = async () => {
-            if (window.confirm("Are you sure you want to completely clear all saved raw data AND forecast adjustments?")) {
+            if (window.confirm("Are you sure you want to completely clear all saved raw data AND forecast assumptions?")) {
               setIsProcessing(true);
               await clearDB();
               setRawData(null);
-              setAssumptions({ oneOffs: [], increments: [], union: [] });
+              setAssumptions({ oneOffs: [], increments: [], union: [], startMonthFilter: '' });
               setDataModel(null);
               setDashboardMonth('');
               setShowAssumptions(false);
@@ -535,9 +502,19 @@
               return Array.from(groups).sort();
           }, [rawData]);
 
+          const rawMonthsList = useMemo(() => {
+              if (!rawData) return [];
+              return Array.from(new Set(rawData.map(r => parseDateStrToMonthKey(r['Pay Period End'])))).filter(Boolean).sort();
+          }, [rawData]);
+
           const forecastMonthsList = useMemo(() => {
               if (!rawData) return [];
-              const allMonths = Array.from(new Set(rawData.map(r => parseDateStrToMonthKey(r['Pay Period End'])))).filter(Boolean).sort();
+              
+              const allMonths = Array.from(new Set(rawData.map(r => parseDateStrToMonthKey(r['Pay Period End']))))
+                  .filter(Boolean)
+                  .filter(m => !assumptions.startMonthFilter || m >= assumptions.startMonthFilter)
+                  .sort();
+              
               if(allMonths.length === 0) return [];
               
               const baseM = allMonths[allMonths.length - 1];
@@ -553,7 +530,7 @@
                   curr.setMonth(curr.getMonth() + 1);
               }
               return list;
-          }, [rawData]);
+          }, [rawData, assumptions.startMonthFilter]);
 
           // --- Build Unified Data Engine & Tree ---
           useEffect(() => {
@@ -565,10 +542,12 @@
               const allMonthsSet = new Set();
               const empInfoMap = {}; 
 
-              // 1. First Pass: Get actual months and map latest info per employee
+              // 1. First Pass: Get actual months
               rawData.forEach(row => {
                 const monthKey = parseDateStrToMonthKey(row['Pay Period End']);
                 if (!monthKey) return; 
+                if (assumptions.startMonthFilter && monthKey < assumptions.startMonthFilter) return; // Discard filtered months
+                
                 allMonthsSet.add(monthKey);
 
                 const id = String(row['ID'] || '').trim();
@@ -577,7 +556,6 @@
 
               const actualMonths = Array.from(allMonthsSet).sort();
               if (actualMonths.length === 0) {
-                alert("No valid dates found in the data. Please ensure your file has a column named 'Pay Period End' with valid dates.");
                 setIsProcessing(false);
                 return;
               }
@@ -596,15 +574,14 @@
                 currentForecast.setMonth(currentForecast.getMonth() + 1);
               }
 
-              // Filter raw data to isolate base month rows for carrying forward
               const baseRows = rawData.filter(r => parseDateStrToMonthKey(r['Pay Period End']) === baseMonth);
-
               const combinedData = [];
 
               // Add Actuals
               rawData.forEach(row => {
                   const m = parseDateStrToMonthKey(row['Pay Period End']);
                   if (!m) return;
+                  if (assumptions.startMonthFilter && m < assumptions.startMonthFilter) return;
                   combinedData.push({ month: m, amount: parseAmount(row['Amount']), id: String(row['ID']).trim(), row });
               });
 
@@ -696,7 +673,9 @@
               });
 
               setDataModel({ tree, actualMonths, forecastMonths, baseMonth });
-              if (!dashboardMonth) setDashboardMonth(baseMonth);
+              if (!dashboardMonth || dashboardMonth < (assumptions.startMonthFilter||'')) {
+                  setDashboardMonth(baseMonth);
+              }
               setExpandedRows(new Set(['root']));
               setIsProcessing(false);
             }, 50);
@@ -714,7 +693,6 @@
 
           const collapseAll = () => setExpandedRows(new Set(['root']));
 
-          // Reset waterfall index when time grouping or data size changes
           useEffect(() => {
               setWaterfallBaseIndex(-1);
               setWaterfallCompareIndex(-1);
@@ -1164,19 +1142,6 @@
             setIsProcessing(false);
           };
           
-          // --- Assumptions Sub-Components ---
-          const [unionGroup, setUnionGroup] = useState('');
-          const [unionPct, setUnionPct] = useState('');
-          const [unionMonth, setUnionMonth] = useState('');
-          const [incMonth, setIncMonth] = useState('');
-
-          const addUnionRule = () => {
-              if(!unionGroup || !unionPct || !unionMonth) return alert("Please fill all fields.");
-              const newRule = { group: unionGroup, percentage: parseFloat(unionPct), startMonth: unionMonth, id: Date.now() };
-              saveAssumptionsState({ ...assumptions, union: [...(assumptions.union||[]), newRule] });
-              setUnionPct('');
-          };
-
           const handleIncrementUpload = (e) => {
               const file = e.target.files[0];
               if (!file || !incMonth) return; 
@@ -1253,8 +1218,8 @@
                       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                           <div className="flex justify-between items-center p-5 border-b border-gray-200 bg-gray-50 rounded-t-xl">
                               <div>
-                                  <h2 className="text-xl font-bold text-gray-800">Forecast Assumptions</h2>
-                                  <p className="text-xs text-gray-500 mt-1">Rules applied automatically to future forecasts.</p>
+                                  <h2 className="text-xl font-bold text-gray-800">Forecast Assumptions & Filters</h2>
+                                  <p className="text-xs text-gray-500 mt-1">Rules applied automatically to future forecasts and historical filters.</p>
                               </div>
                               <button onClick={()=>setShowAssumptions(false)} className="text-gray-400 hover:text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1265,6 +1230,7 @@
                               <button onClick={()=>setActiveAssumptionTab('union')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='union'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Union Increases</button>
                               <button onClick={()=>setActiveAssumptionTab('increments')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='increments'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Flat Increments</button>
                               <button onClick={()=>setActiveAssumptionTab('active')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='active'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Active Rules</button>
+                              <button onClick={()=>setActiveAssumptionTab('filters')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='filters'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Data Filters</button>
                           </div>
                           
                           <div className="p-6 overflow-y-auto flex-grow">
@@ -1291,7 +1257,12 @@
                                               </select>
                                           </div>
                                       </div>
-                                      <button onClick={addUnionRule} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full transition-colors">Apply Union Increase</button>
+                                      <button onClick={() => {
+                                          if(!unionGroup || !unionPct || !unionMonth) return alert("Please fill all fields.");
+                                          const newRule = { group: unionGroup, percentage: parseFloat(unionPct), startMonth: unionMonth, id: Date.now() };
+                                          saveAssumptionsState({ ...assumptions, union: [...(assumptions.union||[]), newRule] });
+                                          setUnionPct('');
+                                      }} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full transition-colors">Apply Union Increase</button>
                                   </div>
                               )}
 
@@ -1356,6 +1327,26 @@
                                     )}
                                   </div>
                               )}
+
+                              {activeAssumptionTab === 'filters' && (
+                                  <div className="space-y-4">
+                                      <p className="text-gray-600 mb-4">Crop out unwanted historical data (e.g., if a July payroll row is bleeding into your August report).</p>
+                                      <div>
+                                          <label className="block text-xs font-bold text-gray-700 mb-1">Start Dashboard From:</label>
+                                          <select 
+                                              value={assumptions.startMonthFilter || ''} 
+                                              onChange={e => saveAssumptionsState({...assumptions, startMonthFilter: e.target.value})} 
+                                              className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50"
+                                          >
+                                              <option value="">-- Show All Uploaded Data --</option>
+                                              {rawMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}
+                                          </select>
+                                      </div>
+                                      <div className="bg-blue-50 p-4 rounded border border-blue-100 mt-4">
+                                          <p className="text-xs text-blue-800"><b>Pro Tip:</b> If your Excel file contains late adjustments from previous months (like retro-pay recorded on July 31st), setting this to <b>August 2025</b> will force the dashboard to completely ignore those July rows.</p>
+                                      </div>
+                                  </div>
+                              )}
                           </div>
                       </div>
                   </div>
@@ -1387,9 +1378,9 @@
                     </h1>
                     <p className="text-gray-500 mt-1 flex items-center">
                       {dataModel ? `Actuals through ${formatMonthLabel(dataModel.baseMonth)} • Projected through Jul-27` : 'Processing Data...'}
-                      {((assumptions.union?.length||0) + (assumptions.increments?.length||0) > 0) && (
+                      {((assumptions.union?.length||0) + (assumptions.increments?.length||0) > 0 || assumptions.startMonthFilter) && (
                          <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800">
-                            Custom Forecast Rules Active
+                            Custom Rules Active
                          </span>
                       )}
                     </p>
