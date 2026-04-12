@@ -306,7 +306,8 @@
           
           // Navigation & UI States
           const [activeTab, setActiveTab] = useState('table'); 
-          const [waterfallTargetIndex, setWaterfallTargetIndex] = useState(-1);
+          const [waterfallBaseIndex, setWaterfallBaseIndex] = useState(-1);
+          const [waterfallCompareIndex, setWaterfallCompareIndex] = useState(-1);
           
           const [dataModel, setDataModel] = useState(null);
           const [expandedRows, setExpandedRows] = useState(new Set(['root']));
@@ -512,7 +513,8 @@
               setDashboardMonth('');
               setShowAssumptions(false);
               setActiveTab('table');
-              setWaterfallTargetIndex(-1);
+              setWaterfallBaseIndex(-1);
+              setWaterfallCompareIndex(-1);
               setIsProcessing(false);
             }
           };
@@ -712,9 +714,11 @@
 
           const collapseAll = () => setExpandedRows(new Set(['root']));
 
+          // Reset waterfall index when time grouping or data size changes
           useEffect(() => {
-              setWaterfallTargetIndex(-1);
-          }, [timeGrouping]);
+              setWaterfallBaseIndex(-1);
+              setWaterfallCompareIndex(-1);
+          }, [timeGrouping, dataModel]);
 
           // Calculate Display Periods based on August-July Financial Year and YTD
           const displayPeriods = useMemo(() => {
@@ -722,33 +726,34 @@
             const allMonths = [...dataModel.actualMonths, ...dataModel.forecastMonths];
             
             if (timeGrouping === 'ytd') {
-                if (!dashboardMonth) return [];
-                const [dYearStr, dMonthStr] = dashboardMonth.split('-');
-                const dYear = parseInt(dYearStr, 10);
-                const dMonth = parseInt(dMonthStr, 10);
-                const fyStartYear = dMonth >= 8 ? dYear : dYear - 1;
+                return allMonths.map(targetMonth => {
+                    const [dYearStr, dMonthStr] = targetMonth.split('-');
+                    const dYear = parseInt(dYearStr, 10);
+                    const dMonth = parseInt(dMonthStr, 10);
+                    const fyStartYear = dMonth >= 8 ? dYear : dYear - 1;
 
-                const ytdMonths = allMonths.filter(m => {
-                    const [yStr, mmStr] = m.split('-');
-                    const y = parseInt(yStr, 10);
-                    const mm = parseInt(mmStr, 10);
-                    const mFyStartYear = mm >= 8 ? y : y - 1;
-                    return mFyStartYear === fyStartYear && m <= dashboardMonth;
+                    const ytdMonths = allMonths.filter(m => {
+                        const [yStr, mmStr] = m.split('-');
+                        const y = parseInt(yStr, 10);
+                        const mm = parseInt(mmStr, 10);
+                        const mFyStartYear = mm >= 8 ? y : y - 1;
+                        return mFyStartYear === fyStartYear && m <= targetMonth;
+                    });
+
+                    const hasActual = ytdMonths.some(m => dataModel.actualMonths.includes(m));
+                    const hasForecast = ytdMonths.some(m => dataModel.forecastMonths.includes(m));
+                    let type = 'actual';
+                    if (hasActual && hasForecast) type = 'mixed';
+                    else if (hasForecast) type = 'forecast';
+
+                    return {
+                        key: `YTD-${targetMonth}`,
+                        label: `YTD (${formatMonthLabel(targetMonth)})`,
+                        months: ytdMonths,
+                        type,
+                        containsBaseMonth: ytdMonths.includes(dataModel.baseMonth)
+                    };
                 });
-
-                const hasActual = ytdMonths.some(m => dataModel.actualMonths.includes(m));
-                const hasForecast = ytdMonths.some(m => dataModel.forecastMonths.includes(m));
-                let type = 'actual';
-                if (hasActual && hasForecast) type = 'mixed';
-                else if (hasForecast) type = 'forecast';
-
-                return [{
-                    key: `YTD-${dashboardMonth}`,
-                    label: `YTD (${formatMonthLabel(dashboardMonth)})`,
-                    months: ytdMonths,
-                    type,
-                    containsBaseMonth: ytdMonths.includes(dataModel.baseMonth)
-                }];
             }
 
             const groups = {};
@@ -951,22 +956,26 @@
           const waterfallData = useMemo(() => {
               if (displayPeriods.length < 2 || !dataModel) return null;
               
-              let wfIndex = waterfallTargetIndex;
-              if (wfIndex === -1 || wfIndex >= displayPeriods.length) {
-                  wfIndex = displayPeriods.length - 1;
+              let baseIdx = waterfallBaseIndex;
+              let compIdx = waterfallCompareIndex;
+              
+              if (baseIdx === -1 || baseIdx >= displayPeriods.length) {
+                  baseIdx = displayPeriods.length >= 2 ? displayPeriods.length - 2 : 0;
               }
-              if (wfIndex === 0) wfIndex = 1; 
+              if (compIdx === -1 || compIdx >= displayPeriods.length) {
+                  compIdx = displayPeriods.length - 1;
+              }
 
-              const wfCurrent = displayPeriods[wfIndex];
-              const wfPrev = displayPeriods[wfIndex - 1];
+              const wfBase = displayPeriods[baseIdx];
+              const wfComp = displayPeriods[compIdx];
 
-              const prevTotal = getMetricValue(dataModel.tree, wfPrev);
-              const currTotal = getMetricValue(dataModel.tree, wfCurrent);
+              const baseTotal = getMetricValue(dataModel.tree, wfBase);
+              const compTotal = getMetricValue(dataModel.tree, wfComp);
 
               let deltas = [];
               Object.values(dataModel.tree.children).forEach(child => {
-                  const pVal = getMetricValue(child, wfPrev);
-                  const cVal = getMetricValue(child, wfCurrent);
+                  const pVal = getMetricValue(child, wfBase);
+                  const cVal = getMetricValue(child, wfComp);
                   const diff = cVal - pVal;
                   if (Math.abs(diff) > 0.01) {
                       deltas.push({ name: child.name, value: diff });
@@ -985,9 +994,9 @@
               }
 
               const steps = [];
-              steps.push({ label: wfPrev.label, value: prevTotal, isTotal: true, startY: 0, endY: prevTotal });
+              steps.push({ label: wfBase.label, value: baseTotal, isTotal: true, startY: 0, endY: baseTotal });
 
-              let runningTotal = prevTotal;
+              let runningTotal = baseTotal;
               deltas.forEach(d => {
                   steps.push({
                       label: d.name,
@@ -999,16 +1008,16 @@
                   runningTotal += d.value;
               });
 
-              steps.push({ label: wfCurrent.label, value: currTotal, isTotal: true, startY: 0, endY: currTotal });
-              return { steps, wfCurrent, wfPrev, wfIndex };
-          }, [displayPeriods, waterfallTargetIndex, dataModel, getMetricValue]);
+              steps.push({ label: wfComp.label, value: compTotal, isTotal: true, startY: 0, endY: compTotal });
+              return { steps, wfBase, wfComp };
+          }, [displayPeriods, waterfallBaseIndex, waterfallCompareIndex, dataModel, getMetricValue]);
 
           const renderWaterfallSVG = () => {
               if (!waterfallData) {
                   return (
                       <div className="py-20 text-center text-gray-500">
                           <p className="text-lg font-semibold mb-2">Insufficient Data for Waterfall</p>
-                          <p className="text-sm">The Waterfall chart requires at least two periods to compare. Please ensure your time grouping is set to Monthly, Quarterly, or Annually (YTD cannot be used here).</p>
+                          <p className="text-sm">The Waterfall chart requires at least two periods to compare. Ensure your filters provide multiple periods.</p>
                       </div>
                   );
               }
@@ -1697,11 +1706,11 @@
                 {/* --- WATERFALL TAB --- */}
                 {activeTab === 'waterfall' && (
                     <div className="p-8 h-full bg-gray-50/50">
-                        {timeGrouping === 'ytd' || displayPeriods.length < 2 ? (
+                        {displayPeriods.length < 2 ? (
                             <div className="py-20 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
                                 <ChartIcon />
-                                <p className="text-xl font-bold mt-4 mb-2 text-gray-800">Cannot Generate Waterfall</p>
-                                <p className="text-sm max-w-md mx-auto">The Waterfall Chart requires at least two periods to compare movement. Please change your <b>Group</b> setting at the top from <b>YTD</b> to <b>Monthly</b>, <b>Quarterly</b>, or <b>Annually</b>.</p>
+                                <p className="text-xl font-bold mt-4 mb-2 text-gray-800">Insufficient Data for Waterfall</p>
+                                <p className="text-sm max-w-md mx-auto">The Waterfall Chart requires at least two periods to compare movement. Ensure your filters provide multiple periods.</p>
                             </div>
                         ) : (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1710,21 +1719,56 @@
                                         <h3 className="text-lg font-bold text-gray-800">Movement Variance Analysis</h3>
                                         <p className="text-sm text-gray-500">Grouped by: {HIERARCHY_PRESETS[hierarchyIndex].keys[0]}</p>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <label className="text-sm font-medium text-gray-600">Compare Period:</label>
-                                        <div className="relative">
-                                            <select 
-                                                className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-1.5 pl-3 pr-8 rounded-lg text-sm font-semibold shadow-sm outline-none focus:border-blue-500"
-                                                value={waterfallTargetIndex === -1 ? displayPeriods.length - 1 : waterfallTargetIndex}
-                                                onChange={(e) => setWaterfallTargetIndex(parseInt(e.target.value, 10))}
-                                            >
-                                                {displayPeriods.map((p, i) => {
-                                                    if (i === 0) return null;
-                                                    return <option key={i} value={i}>{p.label} vs {displayPeriods[i-1].label}</option>
-                                                })}
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                                <ChevronDown />
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-gray-100 p-1 rounded-lg inline-flex mr-4">
+                                          <button 
+                                            onClick={() => setMetric('amount')}
+                                            className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'amount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                                          >
+                                            $ Amount
+                                          </button>
+                                          <button 
+                                            onClick={() => setMetric('headcount')}
+                                            className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'headcount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                                          >
+                                            Headcount
+                                          </button>
+                                        </div>
+                                        
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-right">Base:</label>
+                                                <div className="relative">
+                                                    <select 
+                                                        className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-1.5 pl-3 pr-8 rounded-lg text-sm font-semibold shadow-sm outline-none focus:border-blue-500"
+                                                        value={waterfallBaseIndex === -1 ? (displayPeriods.length >= 2 ? displayPeriods.length - 2 : 0) : waterfallBaseIndex}
+                                                        onChange={(e) => setWaterfallBaseIndex(parseInt(e.target.value, 10))}
+                                                    >
+                                                        {displayPeriods.map((p, i) => (
+                                                            <option key={`base-${i}`} value={i}>{p.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                                        <ChevronDown />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-right">Target:</label>
+                                                <div className="relative">
+                                                    <select 
+                                                        className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-1.5 pl-3 pr-8 rounded-lg text-sm font-semibold shadow-sm outline-none focus:border-blue-500"
+                                                        value={waterfallCompareIndex === -1 ? displayPeriods.length - 1 : waterfallCompareIndex}
+                                                        onChange={(e) => setWaterfallCompareIndex(parseInt(e.target.value, 10))}
+                                                    >
+                                                        {displayPeriods.map((p, i) => (
+                                                            <option key={`comp-${i}`} value={i}>{p.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                                        <ChevronDown />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
