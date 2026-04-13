@@ -15,90 +15,27 @@
     <!-- Load Babel for JSX compiling in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- JSZip for handling compressed 40MB+ files directly in the browser -->
+    <!-- JSZip for handling compressed files directly in the browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
         // --- SVGs ---
-        const ChevronRight = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        );
-
-        const ChevronDown = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        );
-
-        const UploadIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-4 text-blue-400">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-        );
-
-        const ExcelIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="8" y1="13" x2="16" y2="13"></line>
-            <line x1="8" y1="17" x2="16" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-        );
-        
-        const SettingsIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-        );
-
-        const TrashIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
-        );
-        
-        const TrendingUp = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-            <polyline points="17 6 23 6 23 12"></polyline>
-          </svg>
-        );
-
-        const TrendingDown = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1">
-            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
-            <polyline points="17 18 23 18 23 12"></polyline>
-          </svg>
-        );
-
-        const ChartIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-2">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-        );
-
-        const TableIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-2">
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-            <line x1="3" y1="16" x2="21" y2="16"></line>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          </svg>
-        );
+        const ChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+        const ChevronDown = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline"><polyline points="6 9 12 15 18 9"></polyline></svg>;
+        const UploadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-4 text-blue-400"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
+        const ExcelIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+        const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 inline"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+        const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
+        const TrendingUp = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>;
+        const TrendingDown = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline></svg>;
+        const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>;
+        const TableIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-2"><line x1="3" y1="10" x2="21" y2="10"></line><line x1="3" y1="16" x2="21" y2="16"></line><line x1="9" y1="3" x2="9" y2="21"></line><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>;
+        const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
 
         // --- Browser IndexedDB Storage Engine ---
         const DB_NAME = 'UWIPayrollDB';
@@ -160,7 +97,7 @@
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
             script.onload = () => resolve(window.XLSX);
             script.onerror = () => {
-              alert("Failed to load Excel parsing engine. Please check your internet connection or ad-blocker.");
+              alert("Failed to load Excel parsing engine. Please check your internet connection.");
               reject(new Error("CDN Load Failed"));
             };
             document.head.appendChild(script);
@@ -169,11 +106,10 @@
 
         // --- Formatting Helpers ---
         function parseDateStrToMonthKey(dateStr) {
-          if (dateStr === null || dateStr === undefined || dateStr === '') return null;
+          if (!dateStr) return null;
           
           if (typeof dateStr === 'number' || (!isNaN(dateStr) && !String(dateStr).includes('/') && !String(dateStr).includes('-'))) {
             const serial = parseFloat(dateStr);
-            // Strict UTC offset prevents local timezone anomalies from shifting midnight to previous day
             const dateObj = new Date(Date.UTC(1970, 0, Math.round(serial) - 25569 + 1));
             const y = dateObj.getUTCFullYear();
             const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
@@ -181,29 +117,18 @@
           }
 
           const str = String(dateStr).trim();
-          
           if (str.includes('-')) {
             const parts = str.split('-');
-            if (parts.length >= 2 && parts[0].length === 4) {
-              return `${parts[0]}-${parts[1].padStart(2, '0')}`;
-            }
+            if (parts.length >= 2 && parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}`;
           }
-
           if (str.includes('/')) {
             const parts = str.split('/');
             if (parts.length === 3) {
-              let m = parts[1];
-              let y = parts[2];
-              if (parts[0].length === 4) {
-                y = parts[0];
-                m = parts[1];
-              } else if (parts[2].length === 2) {
-                y = `20${parts[2]}`;
-              }
+              let y = parts[0].length === 4 ? parts[0] : (parts[2].length === 2 ? `20${parts[2]}` : parts[2]);
+              let m = parts[0].length === 4 ? parts[1] : parts[0];
               return `${y}-${m.padStart(2, '0')}`;
             }
           }
-          
           return null;
         }
 
@@ -211,58 +136,37 @@
           if (!monthKey || typeof monthKey !== 'string') return '';
           const parts = monthKey.split('-');
           if (parts.length !== 2) return monthKey;
-          
           const yearNum = parseInt(parts[0], 10);
           const monthNum = parseInt(parts[1], 10);
           if (isNaN(yearNum) || isNaN(monthNum)) return monthKey;
-          
-          const dateObj = new Date(yearNum, monthNum - 1, 1);
-          return dateObj.toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', '-');
+          return new Date(yearNum, monthNum - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', '-');
         }
 
-        const formatCurrency = (val) => {
-          if (val === undefined || val === null || isNaN(val)) return '-';
-          return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
-        };
-
-        const formatCount = (val) => {
-          if (val === undefined || val === null || isNaN(val)) return '-';
-          return new Intl.NumberFormat('en-US').format(val);
-        };
+        const formatCurrency = (val) => val == null || isNaN(val) ? '-' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+        const formatCount = (val) => val == null || isNaN(val) ? '-' : new Intl.NumberFormat('en-US').format(val);
 
         function parseAmount(val) {
-          if (val === null || val === undefined || val === '') return 0;
+          if (val == null || val === '') return 0;
           if (typeof val === 'number') return val;
-          
           let strVal = String(val).trim();
           const isNegative = strVal.includes('-') || (strVal.includes('(') && strVal.includes(')'));
           strVal = strVal.replace(/[^0-9.]/g, '');
-          
           let num = parseFloat(strVal);
-          if (isNaN(num)) return 0;
-          return isNegative ? -num : num;
+          return isNaN(num) ? 0 : (isNegative ? -num : num);
         }
         
         function getOrgValue(row) {
-            if (row['Org. #'] !== undefined) return row['Org. #'];
-            if (row['Org #'] !== undefined) return row['Org #'];
-            if (row['Org.'] !== undefined) return row['Org.'];
-            if (row['Org'] !== undefined) return row['Org'];
-            
             const orgKey = Object.keys(row).find(k => {
-                const clean = String(k).replace(/\s+/g, '').toLowerCase();
-                return clean === 'org.#' || clean === 'org#' || clean === 'org' || clean === 'orgnum';
+                const c = String(k).replace(/\s+/g, '').toLowerCase();
+                return c === 'org.#' || c === 'org#' || c === 'org' || c === 'orgnum';
             });
-            
             return orgKey ? row[orgKey] : null;
         }
 
         function getFacultyFromOrg(orgNum) {
-          if (orgNum === null || orgNum === undefined || orgNum === '') return 'Admin & Other Units';
-          
+          if (!orgNum) return 'Admin & Other Units';
           const match = String(orgNum).match(/\d+/);
           if (!match) return 'Admin & Other Units';
-
           const num = parseInt(match[0], 10);
 
           if (num >= 7100 && num <= 7199) return 'Faculty of Humanities & Education';
@@ -273,22 +177,45 @@
           if (num >= 7600 && num <= 7699) return 'Faculty of Social Sciences';
           if (num >= 7700 && num <= 7799) return 'Faculty of Sport';
           if (num >= 7800 && num <= 7899) return 'Institute for Gender & Dev Studies';
-
           return 'Admin & Other Units';
         }
 
         const getLogoSrc = () => './logo_uwi_lrg.jpg';
 
-        // --- Configurations ---
+        // Template Downloader Tool
+        const downloadTemplate = (type) => {
+            let content = "", filename = "";
+            if (type === 'increments') {
+                content = "ID,Amount,Start Month\n100123,5000,2025-08\n100124,2500,2025-08\n";
+                filename = "template_increments.csv";
+            } else if (type === 'union') {
+                content = "Group,Percentage,Start Month\nMONA,5.0,2025-08\nUWI,3.5,2025-08\n";
+                filename = "template_union_increases.csv";
+            } else if (type === 'oneoffs') {
+                content = "ID,Amount,Month\n100123,50000,2025-12\n100124,120000,2026-03\n";
+                filename = "template_one_offs.csv";
+            } else if (type === 'mapping') {
+                content = "Org,Faculty,Department\n7403,Faculty of Medical Sciences,Clinical Department\n3106,Central Campus Services,Central Campus\n";
+                filename = "template_org_mapping.csv";
+            }
+            const blob = new Blob([content], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
         const HIERARCHY_PRESETS = [
-          { label: 'Faculty > Dept > Account > Position > Emp', keys: ['Mapped Faculty', 'Department name', 'Acct. Description', 'Posn Desc', 'Name'] },
-          { label: 'Faculty > Dept > Position > Emp', keys: ['Mapped Faculty', 'Department name', 'Posn Desc', 'Name'] },
+          { label: 'Faculty > Dept > Account > Position > Emp', keys: ['Mapped Faculty', 'Mapped Department', 'Acct. Description', 'Posn Desc', 'Name'] },
+          { label: 'Faculty > Dept > Position > Emp', keys: ['Mapped Faculty', 'Mapped Department', 'Posn Desc', 'Name'] },
           { label: 'Faculty Only', keys: ['Mapped Faculty'] },
-          { label: 'Dept > Account > Position > Emp', keys: ['Department name', 'Acct. Description', 'Posn Desc', 'Name'] },
-          { label: 'Position > Dept > Emp', keys: ['Posn Desc', 'Department name', 'Name'] },
-          { label: 'Department Only', keys: ['Department name'] },
-          { label: 'Account Category > Dept', keys: ['Acct. Description', 'Department name'] },
-          { label: 'Account # > Faculty > Dept > Emp', keys: ['Account #', 'Mapped Faculty', 'Department name', 'Name'] },
+          { label: 'Dept > Account > Position > Emp', keys: ['Mapped Department', 'Acct. Description', 'Posn Desc', 'Name'] },
+          { label: 'Position > Dept > Emp', keys: ['Posn Desc', 'Mapped Department', 'Name'] },
+          { label: 'Department Only', keys: ['Mapped Department'] },
+          { label: 'Account Category > Dept', keys: ['Acct. Description', 'Mapped Department'] },
+          { label: 'Account # > Faculty > Dept > Emp', keys: ['Account #', 'Mapped Faculty', 'Mapped Department', 'Name'] },
           { label: 'Account # > Account Category', keys: ['Account #', 'Acct. Description'] },
           { label: 'Position Only', keys: ['Posn Desc'] },
           { label: 'Group Only', keys: ['Group'] },
@@ -297,15 +224,18 @@
 
         function App() {
           const [rawData, setRawData] = useState(null);
+          const [mappingData, setMappingData] = useState(null);
           const [isProcessing, setIsProcessing] = useState(true); 
           
           // Unified Assumptions State
           const [assumptions, setAssumptions] = useState({ oneOffs: [], increments: [], union: [], startMonthFilter: '' });
-          const [showAssumptions, setShowAssumptions] = useState(false);
-          const [activeAssumptionTab, setActiveAssumptionTab] = useState('union');
+          const [activeAdminTab, setActiveAdminTab] = useState('union');
+          
+          // Scenario Filters
+          const [scenarioFilters, setScenarioFilters] = useState({ base: true, union: true, increments: true, oneOffs: true });
           
           // Navigation & UI States
-          const [activeTab, setActiveTab] = useState('table'); 
+          const [activeTab, setActiveTab] = useState('table'); // 'table' | 'waterfall' | 'admin'
           const [waterfallBaseIndex, setWaterfallBaseIndex] = useState(-1);
           const [waterfallCompareIndex, setWaterfallCompareIndex] = useState(-1);
           
@@ -317,154 +247,199 @@
           const [timeGrouping, setTimeGrouping] = useState('month');
           const [hierarchyIndex, setHierarchyIndex] = useState(0);
           
-          // Dashboard & Modals
           const [dashboardMonth, setDashboardMonth] = useState('');
+          
+          // Refs
           const fileInputRef = useRef(null);
           const incInputRef = useRef(null);
+          const unionInputRef = useRef(null);
+          const oneOffInputRef = useRef(null);
+          const mappingInputRef = useRef(null);
           const logoSrc = useMemo(() => getLogoSrc(), []);
 
-          // --- ZIP & File Processing Engine ---
+          // --- Central Engine for reading ALL files (ZIP, XLSX, CSV) ---
           const processFile = async (file, onComplete) => {
             setIsProcessing(true);
             try {
               let actualFile = file;
-
               if (file.name.toLowerCase().endsWith('.zip')) {
                   const zip = await JSZip.loadAsync(file);
                   const filename = Object.keys(zip.files).find(name => !name.startsWith('__MACOSX') && !name.startsWith('.') && !zip.files[name].dir);
-                  if (!filename) throw new Error("No valid Excel or CSV file found inside the ZIP archive.");
-                  
+                  if (!filename) throw new Error("No valid Excel/CSV found inside ZIP.");
                   const fileData = await zip.files[filename].async("blob");
                   actualFile = new File([fileData], filename);
               }
 
-              const isExcel = actualFile.name.toLowerCase().endsWith('.xlsx') || actualFile.name.toLowerCase().endsWith('.xls');
-              
-              if (isExcel) {
-                  const XLSX = await loadExcelParser();
-                  const reader = new FileReader();
-                  reader.onload = (evt) => {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const parsed = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: "" }); 
-                    onComplete(parsed);
-                  };
-                  reader.readAsArrayBuffer(actualFile);
-              } else {
-                  const reader = new FileReader();
-                  reader.onload = (evt) => {
-                      const text = evt.target.result;
-                      let p = '', row = [''], ret = [row], i = 0, r = 0, s = !0, l;
-                      for (l of text) {
-                          if ('"' === l) {
-                              if (s && l === p) row[i] += l;
-                              s = !s;
-                          } else if (',' === l && s) l = row[++i] = '';
-                          else if ('\n' === l && s) {
-                              row = ret[++r] = [l = '']; i = 0;
-                          } else row[i] += l;
-                          p = l;
-                      }
-                      
-                      const filtered = ret.filter(r => r.length > 1 || r[0].trim() !== '');
-                      const headers = filtered[0].map(h => h.trim());
-                      const parsed = [];
-                      for (let j = 1; j < filtered.length; j++) {
-                          const obj = {};
-                          filtered[j].forEach((val, index) => {
-                              if (headers[index]) obj[headers[index]] = (val || '').trim();
-                          });
-                          parsed.push(obj);
-                      }
-                      onComplete(parsed);
-                  };
-                  reader.readAsText(actualFile);
-              }
+              const XLSX = await loadExcelParser();
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const parsed = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: "" }); 
+                onComplete(parsed);
+              };
+              reader.readAsArrayBuffer(actualFile);
             } catch (e) {
               console.error(e);
-              alert("Error reading file. If using a ZIP file, please ensure it contains a valid CSV or XLSX.");
+              alert("Error reading file.");
               setIsProcessing(false);
             }
           };
 
+          const fetchAndProcessFile = async (filename, callback) => {
+            try {
+                const res = await fetch('./' + filename);
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const ext = filename.split('.').pop().toLowerCase();
+                    const mime = ext === 'zip' ? 'application/zip' : (ext === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    const file = new File([blob], filename, { type: mime });
+                    return new Promise(resolve => {
+                        processFile(file, (parsed) => {
+                            callback(parsed);
+                            resolve(true);
+                        });
+                    });
+                }
+            } catch (e) { }
+            return false;
+          };
+
+          // On Mount Initialization
           useEffect(() => {
             const initApp = async () => {
               try {
-                const savedAdj = await loadFromDB('assumptions');
-                if (savedAdj) {
-                    if (Array.isArray(savedAdj)) {
-                        setAssumptions({ oneOffs: savedAdj, increments: [], union: [], startMonthFilter: '' });
-                    } else {
-                        setAssumptions({ startMonthFilter: '', ...savedAdj });
-                    }
-                }
-
+                // 1. Load Primary Data
                 const savedData = await loadFromDB('latestUpload');
                 if (savedData && savedData.length > 0) {
                     setRawData(savedData);
                 } else {
-                    try {
-                        const resZip = await fetch('./default_data.zip');
-                        if (resZip.ok) {
-                            const blob = await resZip.blob();
-                            const file = new File([blob], 'default_data.zip', { type: 'application/zip' });
-                            processFile(file, async (parsed) => {
-                                await saveToDB('latestUpload', parsed);
-                                setRawData(parsed);
-                            });
-                            return; 
-                        }
-                    } catch (zipErr) {}
-
-                    try {
-                        const resXlsx = await fetch('./default_data.xlsx');
-                        if (resXlsx.ok) {
-                            const blob = await resXlsx.blob();
-                            const file = new File([blob], 'default_data.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                            processFile(file, async (parsed) => {
-                                await saveToDB('latestUpload', parsed);
-                                setRawData(parsed);
-                            });
-                            return; 
-                        }
-                    } catch (xlsxErr) {}
-                    
-                    try {
-                        const resCsv = await fetch('./default_data.csv');
-                        if (resCsv.ok) {
-                            const blob = await resCsv.blob();
-                            const file = new File([blob], 'default_data.csv', { type: 'text/csv' });
-                            processFile(file, async (parsed) => {
-                                await saveToDB('latestUpload', parsed);
-                                setRawData(parsed);
-                            });
-                            return; 
-                        }
-                    } catch (csvErr) {}
-
-                    setIsProcessing(false);
+                    let loaded = await fetchAndProcessFile('default_data.zip', async (p) => { await saveToDB('latestUpload', p); setRawData(p); });
+                    if (!loaded) loaded = await fetchAndProcessFile('default_data.xlsx', async (p) => { await saveToDB('latestUpload', p); setRawData(p); });
+                    if (!loaded) loaded = await fetchAndProcessFile('default_data.csv', async (p) => { await saveToDB('latestUpload', p); setRawData(p); });
+                    if (!loaded) setIsProcessing(false); 
                 }
+
+                // 2. Load Mapping Data
+                let tempMapping = await loadFromDB('mappingData');
+                if (!tempMapping) {
+                    let mapLoaded = await fetchAndProcessFile('mapping.csv', async (parsed) => {
+                        const map = {};
+                        parsed.forEach(r => {
+                            let org = '', fac = '', dept = '';
+                            for (const [k, v] of Object.entries(r)) {
+                                const c = String(k).toLowerCase().trim();
+                                if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
+                                if (c === 'faculty') fac = String(v).trim();
+                                if (c === 'department') dept = String(v).trim();
+                            }
+                            if (org) map[org] = { faculty: fac, dept: dept };
+                        });
+                        tempMapping = map;
+                        await saveToDB('mappingData', map);
+                    });
+                    if(!mapLoaded) {
+                        await fetchAndProcessFile('mapping.xlsx', async (parsed) => {
+                            const map = {};
+                            parsed.forEach(r => {
+                                let org = '', fac = '', dept = '';
+                                for (const [k, v] of Object.entries(r)) {
+                                    const c = String(k).toLowerCase().trim();
+                                    if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
+                                    if (c === 'faculty') fac = String(v).trim();
+                                    if (c === 'department') dept = String(v).trim();
+                                }
+                                if (org) map[org] = { faculty: fac, dept: dept };
+                            });
+                            tempMapping = map;
+                            await saveToDB('mappingData', map);
+                        });
+                    }
+                }
+                if (tempMapping) setMappingData(tempMapping);
+
+                // 3. Load Assumptions
+                let tempAssumptions = { oneOffs: [], increments: [], union: [], startMonthFilter: '' };
+                const savedAdj = await loadFromDB('assumptions');
+                if (savedAdj) {
+                    if (Array.isArray(savedAdj)) tempAssumptions = { ...tempAssumptions, oneOffs: savedAdj };
+                    else tempAssumptions = { ...tempAssumptions, ...savedAdj };
+                }
+
+                let assumptionsChanged = false;
+
+                if (tempAssumptions.increments.length === 0) {
+                    await fetchAndProcessFile('default_increments.csv', (parsed) => {
+                        const newInc = parsed.map(r => {
+                            let id = '', amt = 0, sm = '';
+                            for (const [k, v] of Object.entries(r)) {
+                                const c = String(k).toLowerCase().trim();
+                                if (c==='id' || c==='id number') id = String(v).trim();
+                                if (c==='amount' || c==='value') amt = parseAmount(v);
+                                if (c==='start month' || c==='month') sm = parseDateStrToMonthKey(v) || String(v).trim();
+                            }
+                            return { id, amount: amt, startMonth: sm, uid: Date.now() + Math.random() };
+                        }).filter(r => r.id && r.amount !== 0 && r.startMonth);
+                        if (newInc.length > 0) { tempAssumptions.increments = newInc; assumptionsChanged = true; }
+                    });
+                }
+
+                if (tempAssumptions.union.length === 0) {
+                    await fetchAndProcessFile('default_union_increases.csv', (parsed) => {
+                        const newUnion = parsed.map(r => {
+                            let grp = '', pct = 0, sm = '';
+                            for (const [k, v] of Object.entries(r)) {
+                                const c = String(k).toLowerCase().trim();
+                                if (c==='group' || c==='union group') grp = String(v).trim();
+                                if (c==='percentage' || c==='pct' || c==='%') pct = parseFloat(v);
+                                if (c==='start month' || c==='month') sm = parseDateStrToMonthKey(v) || String(v).trim();
+                            }
+                            return { group: grp, percentage: pct, startMonth: sm, id: Date.now() + Math.random() };
+                        }).filter(r => r.group && !isNaN(r.percentage) && r.startMonth);
+                        if (newUnion.length > 0) { tempAssumptions.union = newUnion; assumptionsChanged = true; }
+                    });
+                }
+
+                if (tempAssumptions.oneOffs.length === 0) {
+                    await fetchAndProcessFile('default_one_offs.csv', (parsed) => {
+                        const newOneOffs = parsed.map(r => {
+                            let id = '', amt = 0, m = '';
+                            for (const [k, v] of Object.entries(r)) {
+                                const c = String(k).toLowerCase().trim();
+                                if (c==='id') id = String(v).trim();
+                                if (c==='amount') amt = parseAmount(v);
+                                if (c==='month') m = parseDateStrToMonthKey(v) || String(v).trim();
+                            }
+                            return { ID: id, Amount: amt, Month: m, uid: Date.now() + Math.random() };
+                        }).filter(r => r.ID && r.Amount && r.Month);
+
+                        if (newOneOffs.length > 0) { tempAssumptions.oneOffs = newOneOffs; assumptionsChanged = true; }
+                    });
+                }
+
+                setAssumptions(tempAssumptions);
+                if (assumptionsChanged) saveToDB('assumptions', tempAssumptions);
+                
+                setIsProcessing(false);
               } catch (err) {
-                console.error("Database initialization failed", err);
+                console.error("Initialization failed", err);
                 setIsProcessing(false);
               }
             };
             initApp();
           }, []);
 
-
           const handleFileUpload = (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             processFile(file, async (parsed) => {
               let finalData = parsed;
               if (rawData && rawData.length > 0) {
-                  const doAppend = window.confirm(`Existing data found (${rawData.length} rows).\n\nClick [OK] to APPEND this new file's data to your existing history.\nClick [Cancel] to OVERWRITE everything with this new file.`);
+                  const doAppend = window.confirm(`Existing data found (${rawData.length} rows).\n\nClick [OK] to APPEND to history.\nClick [Cancel] to OVERWRITE everything.`);
                   if (doAppend) finalData = [...rawData, ...parsed];
               }
-              await saveToDB('latestUpload', finalData).catch(console.error);
+              await saveToDB('latestUpload', finalData);
               setRawData(finalData);
               if (fileInputRef.current) fileInputRef.current.value = null;
             });
@@ -476,9 +451,9 @@
               await clearDB();
               setRawData(null);
               setAssumptions({ oneOffs: [], increments: [], union: [], startMonthFilter: '' });
+              setMappingData(null);
               setDataModel(null);
               setDashboardMonth('');
-              setShowAssumptions(false);
               setActiveTab('table');
               setWaterfallBaseIndex(-1);
               setWaterfallCompareIndex(-1);
@@ -488,10 +463,10 @@
 
           const saveAssumptionsState = async (newAssumptions) => {
               setAssumptions(newAssumptions);
-              await saveToDB('assumptions', newAssumptions).catch(console.error);
+              await saveToDB('assumptions', newAssumptions);
           };
 
-          // --- Derived Data for Assumptions ---
+          // --- Derived Base Sets ---
           const uniqueGroups = useMemo(() => {
               if (!rawData) return [];
               const groups = new Set();
@@ -509,14 +484,10 @@
 
           const forecastMonthsList = useMemo(() => {
               if (!rawData) return [];
-              
               const allMonths = Array.from(new Set(rawData.map(r => parseDateStrToMonthKey(r['Pay Period End']))))
-                  .filter(Boolean)
-                  .filter(m => !assumptions.startMonthFilter || m >= assumptions.startMonthFilter)
-                  .sort();
+                  .filter(Boolean).filter(m => !assumptions.startMonthFilter || m >= assumptions.startMonthFilter).sort();
               
               if(allMonths.length === 0) return [];
-              
               const baseM = allMonths[allMonths.length - 1];
               const [y, m] = baseM.split('-');
               let curr = new Date(parseInt(y, 10), parseInt(m, 10), 1); 
@@ -532,33 +503,29 @@
               return list;
           }, [rawData, assumptions.startMonthFilter]);
 
-          // --- Build Unified Data Engine & Tree ---
+          // --- Core Engine Build ---
           useEffect(() => {
             if (!rawData) return;
-            
             setIsProcessing(true);
             
             setTimeout(() => {
+              const filteredRawData = rawData.filter(row => {
+                  const m = parseDateStrToMonthKey(row['Pay Period End']);
+                  return m && (!assumptions.startMonthFilter || m >= assumptions.startMonthFilter);
+              });
+
               const allMonthsSet = new Set();
               const empInfoMap = {}; 
 
-              // 1. First Pass: Get actual months
-              rawData.forEach(row => {
+              filteredRawData.forEach(row => {
                 const monthKey = parseDateStrToMonthKey(row['Pay Period End']);
-                if (!monthKey) return; 
-                if (assumptions.startMonthFilter && monthKey < assumptions.startMonthFilter) return; // Discard filtered months
-                
                 allMonthsSet.add(monthKey);
-
                 const id = String(row['ID'] || '').trim();
                 if (id) empInfoMap[id] = row; 
               });
 
               const actualMonths = Array.from(allMonthsSet).sort();
-              if (actualMonths.length === 0) {
-                setIsProcessing(false);
-                return;
-              }
+              if (actualMonths.length === 0) { setIsProcessing(false); return; }
 
               const baseMonth = actualMonths[actualMonths.length - 1];
 
@@ -566,7 +533,6 @@
               const [baseY, baseM] = baseMonth.split('-');
               let currentForecast = new Date(parseInt(baseY, 10), parseInt(baseM, 10), 1);
               const endForecast = new Date(2027, 6, 1); 
-
               while (currentForecast <= endForecast) {
                 const y = currentForecast.getFullYear();
                 const m = String(currentForecast.getMonth() + 1).padStart(2, '0');
@@ -574,119 +540,147 @@
                 currentForecast.setMonth(currentForecast.getMonth() + 1);
               }
 
-              const baseRows = rawData.filter(r => parseDateStrToMonthKey(r['Pay Period End']) === baseMonth);
+              const baseRows = filteredRawData.filter(r => parseDateStrToMonthKey(r['Pay Period End']) === baseMonth);
               const combinedData = [];
 
-              // Add Actuals
-              rawData.forEach(row => {
+              filteredRawData.forEach(row => {
                   const m = parseDateStrToMonthKey(row['Pay Period End']);
-                  if (!m) return;
-                  if (assumptions.startMonthFilter && m < assumptions.startMonthFilter) return;
-                  combinedData.push({ month: m, amount: parseAmount(row['Amount']), id: String(row['ID']).trim(), row });
+                  let originalAmt = parseAmount(row['Amount']);
+                  let finalAmt = 0;
+                  let includeHC = false;
+                  const group = String(row['Group']).trim();
+                  
+                  if (scenarioFilters.base) {
+                      finalAmt += originalAmt;
+                      includeHC = true;
+                  }
+                  
+                  if (scenarioFilters.union && assumptions.union && assumptions.union.length > 0) {
+                      let multiplier = 1;
+                      assumptions.union.forEach(u => {
+                          if (u.group === group && m >= u.startMonth) multiplier *= (1 + (parseFloat(u.percentage) / 100));
+                      });
+                      const unionInc = (originalAmt * multiplier) - originalAmt;
+                      finalAmt += unionInc;
+                      if (multiplier > 1) includeHC = true;
+                  }
+                  
+                  if (includeHC || finalAmt !== 0) {
+                      combinedData.push({ month: m, amount: finalAmt, id: String(row['ID']).trim(), row });
+                  }
               });
 
-              // Generate Forecasts
               forecastMonths.forEach(fm => {
-                  
-                  // 1. Carry forward base rows & apply Union compounding
                   baseRows.forEach(row => {
-                      let amt = parseAmount(row['Amount']);
+                      let originalAmt = parseAmount(row['Amount']);
+                      let finalAmt = 0;
+                      let includeHC = false;
                       const group = String(row['Group']).trim();
                       
-                      if (assumptions.union && assumptions.union.length > 0) {
-                          let multiplier = 1;
-                          assumptions.union.forEach(u => {
-                              if (u.group === group && fm >= u.startMonth) {
-                                  multiplier *= (1 + (parseFloat(u.percentage) / 100));
-                              }
-                          });
-                          amt *= multiplier;
+                      if (scenarioFilters.base) {
+                          finalAmt += originalAmt;
+                          includeHC = true;
                       }
 
-                      combinedData.push({ month: fm, amount: amt, id: String(row['ID']).trim(), row });
+                      if (scenarioFilters.union && assumptions.union && assumptions.union.length > 0) {
+                          let multiplier = 1;
+                          assumptions.union.forEach(u => {
+                              if (u.group === group && fm >= u.startMonth) multiplier *= (1 + (parseFloat(u.percentage) / 100));
+                          });
+                          const unionInc = (originalAmt * multiplier) - originalAmt;
+                          finalAmt += unionInc;
+                          if (multiplier > 1) includeHC = true;
+                      }
+                      
+                      if (includeHC || finalAmt !== 0) {
+                          combinedData.push({ month: fm, amount: finalAmt, id: String(row['ID']).trim(), row });
+                      }
                   });
+              });
 
-                  // 2. Apply Flat Increments
-                  if (assumptions.increments && assumptions.increments.length > 0) {
+              const allTimelineMonths = [...actualMonths, ...forecastMonths];
+              allTimelineMonths.forEach(fm => {
+                  if (scenarioFilters.increments && assumptions.increments) {
                       assumptions.increments.forEach(inc => {
                           if (fm >= inc.startMonth) {
-                              const amt = parseFloat(inc.amount);
                               const id = String(inc.id).trim();
                               const info = empInfoMap[id] || { 'Name': `New Hire (${id})`, 'ID': id, 'Department name': 'TBD / New Hires' };
-                              combinedData.push({ month: fm, amount: amt, id, row: info });
+                              combinedData.push({ month: fm, amount: parseFloat(inc.amount), id, row: info });
                           }
                       });
                   }
-
-                  // 3. Apply Legacy One-Off Adjustments
-                  if (assumptions.oneOffs && assumptions.oneOffs.length > 0) {
+                  if (scenarioFilters.oneOffs && assumptions.oneOffs) {
                       assumptions.oneOffs.forEach(adj => {
                           let adjM = parseDateStrToMonthKey(adj.Month || adj.month);
                           if (adjM === fm) {
                               const id = String(adj.ID || adj.id).trim();
                               const amt = parseAmount(adj.Amount || adj.amount);
-                              const info = empInfoMap[id] || adj; 
-                              const mergedRow = { ...info, ...adj };
+                              const mergedRow = { ...(empInfoMap[id] || {}), ...adj };
                               combinedData.push({ month: fm, amount: amt, id, row: mergedRow });
                           }
                       });
                   }
               });
 
-              // Build UI Tree
               const presetKeys = HIERARCHY_PRESETS[hierarchyIndex].keys;
               const tree = { id: 'root', name: 'Total UWI Mona', level: 0, children: {}, amounts: {}, empIds: {} };
 
               combinedData.forEach(item => {
                   const { month, amount, id, row } = item;
-
-                  const addStats = (node) => {
-                    node.amounts[month] = (node.amounts[month] || 0) + amount;
-                    if (id && id !== 'undefined') {
-                        if (!node.empIds[month]) node.empIds[month] = new Set();
-                        node.empIds[month].add(id);
-                    }
-                  };
-
-                  addStats(tree); 
-
+                  
                   let currentNode = tree;
+                  currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
+                  if (id && id !== 'undefined') {
+                      if (!currentNode.empIds[month]) currentNode.empIds[month] = new Set();
+                      currentNode.empIds[month].add(id);
+                  }
+
                   let currentId = 'root';
+                  const orgValue = getOrgValue(row);
+                  const mappedInfo = (mappingData && orgValue && mappingData[orgValue]) ? mappingData[orgValue] : null;
 
                   presetKeys.forEach((key, idx) => {
                     let val = row[key];
-                    if (!val && key === 'Department name') val = row['Department'] || row['Descr_1'];
-                    if (!val && key === 'Acct. Description') val = row['Account'] || row['__EMPTY'] || row['Descr'];
-                    if (!val && key === 'Posn Desc') val = row['Position'];
-                    if (!val && key === 'Account #') val = row['Account Number'] || row['AccountNum'];
-                    if (key === 'Mapped Faculty') val = getFacultyFromOrg(getOrgValue(row));
+                    
+                    if (key === 'Mapped Faculty') {
+                        val = mappedInfo && mappedInfo.faculty ? mappedInfo.faculty : getFacultyFromOrg(orgValue);
+                    } else if (key === 'Mapped Department') {
+                        val = mappedInfo && mappedInfo.dept ? mappedInfo.dept : (row['Department name'] || row['Department'] || row['Descr_1']);
+                    } else if (!val && key === 'Acct. Description') {
+                        val = row['Account'] || row['__EMPTY'] || row['Descr'];
+                    } else if (!val && key === 'Posn Desc') {
+                        val = row['Position'];
+                    } else if (!val && key === 'Account #') {
+                        val = row['Account Number'] || row['AccountNum'];
+                    }
                     
                     val = String(val || `Unknown ${key}`).trim();
-                    currentId = `${currentId}|${val}`;
+                    currentId += `|${val}`;
                     
                     if (!currentNode.children[val]) {
                       currentNode.children[val] = { id: currentId, name: val, level: idx + 1, children: {}, amounts: {}, empIds: {} };
                     }
                     currentNode = currentNode.children[val];
-                    addStats(currentNode);
+                    
+                    currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
+                    if (id && id !== 'undefined') {
+                        if (!currentNode.empIds[month]) currentNode.empIds[month] = new Set();
+                        currentNode.empIds[month].add(id);
+                    }
                   });
               });
 
               setDataModel({ tree, actualMonths, forecastMonths, baseMonth });
-              if (!dashboardMonth || dashboardMonth < (assumptions.startMonthFilter||'')) {
-                  setDashboardMonth(baseMonth);
-              }
+              if (!dashboardMonth || dashboardMonth < (assumptions.startMonthFilter||'')) setDashboardMonth(baseMonth);
               setExpandedRows(new Set(['root']));
               setIsProcessing(false);
             }, 50);
-
-          }, [rawData, assumptions, hierarchyIndex]);
+          }, [rawData, assumptions, mappingData, hierarchyIndex, scenarioFilters]);
 
           const toggleRow = (id) => {
             setExpandedRows(prev => {
               const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
+              if (next.has(id)) next.delete(id); else next.add(id);
               return next;
             });
           };
@@ -698,7 +692,7 @@
               setWaterfallCompareIndex(-1);
           }, [timeGrouping, dataModel]);
 
-          // Calculate Display Periods based on August-July Financial Year and YTD
+          // --- Period Calculations ---
           const displayPeriods = useMemo(() => {
             if (!dataModel) return [];
             const allMonths = [...dataModel.actualMonths, ...dataModel.forecastMonths];
@@ -706,57 +700,40 @@
             if (timeGrouping === 'ytd') {
                 return allMonths.map(targetMonth => {
                     const [dYearStr, dMonthStr] = targetMonth.split('-');
-                    const dYear = parseInt(dYearStr, 10);
-                    const dMonth = parseInt(dMonthStr, 10);
-                    const fyStartYear = dMonth >= 8 ? dYear : dYear - 1;
+                    const fyStartYear = parseInt(dMonthStr, 10) >= 8 ? parseInt(dYearStr, 10) : parseInt(dYearStr, 10) - 1;
 
                     const ytdMonths = allMonths.filter(m => {
                         const [yStr, mmStr] = m.split('-');
-                        const y = parseInt(yStr, 10);
-                        const mm = parseInt(mmStr, 10);
-                        const mFyStartYear = mm >= 8 ? y : y - 1;
+                        const mFyStartYear = parseInt(mmStr, 10) >= 8 ? parseInt(yStr, 10) : parseInt(yStr, 10) - 1;
                         return mFyStartYear === fyStartYear && m <= targetMonth;
                     });
 
                     const hasActual = ytdMonths.some(m => dataModel.actualMonths.includes(m));
                     const hasForecast = ytdMonths.some(m => dataModel.forecastMonths.includes(m));
-                    let type = 'actual';
-                    if (hasActual && hasForecast) type = 'mixed';
-                    else if (hasForecast) type = 'forecast';
-
                     return {
                         key: `YTD-${targetMonth}`,
                         label: `YTD (${formatMonthLabel(targetMonth)})`,
                         months: ytdMonths,
-                        type,
+                        type: (hasActual && hasForecast) ? 'mixed' : (hasForecast ? 'forecast' : 'actual'),
                         containsBaseMonth: ytdMonths.includes(dataModel.baseMonth)
                     };
                 });
             }
 
             const groups = {};
-
             allMonths.forEach(m => {
               const [y_str, mm_str] = m.split('-');
               const y = parseInt(y_str, 10);
               const mm = parseInt(mm_str, 10);
-              
               let fyStartYear = mm >= 8 ? y : y - 1;
               let fyEndYear = fyStartYear + 1;
-              let fyLabel = `FY ${fyStartYear}/${fyEndYear.toString().slice(2)}`;
-
-              let key, label;
               
+              let key, label;
               if (timeGrouping === 'annual') {
                 key = `FY-${fyStartYear}`; 
-                label = fyLabel;
+                label = `FY ${fyStartYear}/${fyEndYear.toString().slice(2)}`;
               } else if (timeGrouping === 'quarter') {
-                let q;
-                if (mm >= 8 && mm <= 10) q = 1;
-                else if (mm === 11 || mm === 12 || mm === 1) q = 2;
-                else if (mm >= 2 && mm <= 4) q = 3;
-                else q = 4;
-                
+                let q = (mm >= 8 && mm <= 10) ? 1 : ((mm === 11 || mm === 12 || mm === 1) ? 2 : ((mm >= 2 && mm <= 4) ? 3 : 4));
                 key = `FY-${fyStartYear}-Q${q}`; 
                 label = `Q${q} ${fyStartYear}/${fyEndYear.toString().slice(2)}`;
               } else {
@@ -772,65 +749,28 @@
             return Object.values(groups).sort((a,b) => a.key.localeCompare(b.key)).map(g => {
               const hasActual = g.months.some(m => dataModel.actualMonths.includes(m));
               const hasForecast = g.months.some(m => dataModel.forecastMonths.includes(m));
-              
-              if (hasActual && hasForecast) g.type = 'mixed';
-              else if (hasForecast) g.type = 'forecast';
-              else g.type = 'actual';
-              
+              g.type = (hasActual && hasForecast) ? 'mixed' : (hasForecast ? 'forecast' : 'actual');
               return g;
             });
-          }, [dataModel, timeGrouping, dashboardMonth]);
+          }, [dataModel, timeGrouping]);
 
           const getMetricValue = useCallback((node, period) => {
-            if (metric === 'amount') {
-              return period.months.reduce((sum, m) => sum + (node.amounts[m] || 0), 0);
-            }
-            if (metric === 'headcount') {
-              const combinedSet = new Set();
-              period.months.forEach(m => {
-                if (node.empIds[m]) node.empIds[m].forEach(id => combinedSet.add(id));
-              });
-              return combinedSet.size;
-            }
-            return 0;
+            if (metric === 'amount') return period.months.reduce((sum, m) => sum + (node.amounts[m] || 0), 0);
+            const combinedSet = new Set();
+            period.months.forEach(m => { if (node.empIds[m]) node.empIds[m].forEach(id => combinedSet.add(id)); });
+            return combinedSet.size;
           }, [metric]);
           
           const getRowTotal = useCallback((node) => {
-            if (metric === 'amount') {
-              if (viewMode === 'variance') {
+            if (viewMode === 'variance') {
                 let sum = 0;
-                displayPeriods.forEach((p, i) => {
-                  if (i > 0) {
-                     const curr = getMetricValue(node, p);
-                     const prev = getMetricValue(node, displayPeriods[i-1]);
-                     sum += (curr - prev);
-                  }
-                });
+                displayPeriods.forEach((p, i) => { if (i > 0) sum += (getMetricValue(node, p) - getMetricValue(node, displayPeriods[i-1])); });
                 return sum;
-              } else {
-                return displayPeriods.reduce((sum, p) => sum + getMetricValue(node, p), 0);
-              }
-            } else {
-              if (viewMode === 'variance') {
-                let sum = 0;
-                displayPeriods.forEach((p, i) => {
-                  if (i > 0) {
-                     const curr = getMetricValue(node, p);
-                     const prev = getMetricValue(node, displayPeriods[i-1]);
-                     sum += (curr - prev);
-                  }
-                });
-                return sum;
-              } else {
-                const combined = new Set();
-                displayPeriods.forEach(p => {
-                    p.months.forEach(m => {
-                        if (node.empIds[m]) node.empIds[m].forEach(id => combined.add(id));
-                    });
-                });
-                return combined.size;
-              }
             }
+            if (metric === 'amount') return displayPeriods.reduce((sum, p) => sum + getMetricValue(node, p), 0);
+            const combined = new Set();
+            displayPeriods.forEach(p => p.months.forEach(m => { if (node.empIds[m]) node.empIds[m].forEach(id => combined.add(id)); }));
+            return combined.size;
           }, [metric, viewMode, displayPeriods, getMetricValue]);
 
           const renderValueCell = useCallback((node, period, prevPeriod) => {
@@ -871,8 +811,7 @@
             const rows = [];
             const flatten = (node) => {
               rows.push(node);
-              const hasChildrenToRender = node.children && Object.keys(node.children).length > 0;
-              if (hasChildrenToRender && expandedRows.has(node.id)) {
+              if (node.children && Object.keys(node.children).length > 0 && expandedRows.has(node.id)) {
                 Object.values(node.children)
                   .sort((a, b) => String(a.name).localeCompare(String(b.name)))
                   .forEach(flatten);
@@ -882,7 +821,7 @@
             return rows;
           }, [dataModel, expandedRows]);
 
-          // Dashboard Summary Metrics with YTD Logic
+          // --- Dashboard Summary Metrics ---
           const dashboardStats = useMemo(() => {
             if (!dataModel || !dashboardMonth) return null;
             const allMonths = [...dataModel.actualMonths, ...dataModel.forecastMonths];
@@ -895,9 +834,8 @@
             const currentHC = root.empIds[dashboardMonth] ? root.empIds[dashboardMonth].size : 0;
             const prevHC = prevMonth && root.empIds[prevMonth] ? root.empIds[prevMonth].size : 0;
 
-            const [dYearStr, dMonthStr] = dashboardMonth.split('-');
-            const dYear = parseInt(dYearStr, 10);
-            const dMonth = parseInt(dMonthStr, 10);
+            const dYear = parseInt(dashboardMonth.split('-')[0], 10);
+            const dMonth = parseInt(dashboardMonth.split('-')[1], 10);
             const fyStartYear = dMonth >= 8 ? dYear : dYear - 1;
 
             let ytdAmt = 0;
@@ -906,27 +844,16 @@
             for (let i = 0; i <= mIdx; i++) {
                 const m = allMonths[i];
                 const [yStr, mmStr] = m.split('-');
-                const y = parseInt(yStr, 10);
-                const mm = parseInt(mmStr, 10);
-                const mFyStartYear = mm >= 8 ? y : y - 1;
-
-                if (mFyStartYear === fyStartYear && m <= dashboardMonth) {
+                if ((parseInt(mmStr, 10) >= 8 ? parseInt(yStr, 10) : parseInt(yStr, 10) - 1) === fyStartYear && m <= dashboardMonth) {
                     ytdAmt += (root.amounts[m] || 0);
-                    if (root.empIds[m]) {
-                        root.empIds[m].forEach(id => ytdIds.add(id));
-                    }
+                    if (root.empIds[m]) root.empIds[m].forEach(id => ytdIds.add(id));
                 }
             }
 
             return {
-              amount: currentAmt,
-              amountVar: currentAmt - prevAmt,
-              ytdAmount: ytdAmt,
-              hc: currentHC,
-              hcVar: currentHC - prevHC,
-              ytdHc: ytdIds.size,
-              hasPrev: !!prevMonth,
-              isForecast: dataModel.forecastMonths.includes(dashboardMonth)
+              amount: currentAmt, amountVar: currentAmt - prevAmt, ytdAmount: ytdAmt,
+              hc: currentHC, hcVar: currentHC - prevHC, ytdHc: ytdIds.size,
+              hasPrev: !!prevMonth, isForecast: dataModel.forecastMonths.includes(dashboardMonth)
             };
           }, [dataModel, dashboardMonth]);
 
@@ -934,16 +861,9 @@
           const waterfallData = useMemo(() => {
               if (displayPeriods.length < 2 || !dataModel) return null;
               
-              let baseIdx = waterfallBaseIndex;
-              let compIdx = waterfallCompareIndex;
+              let baseIdx = waterfallBaseIndex === -1 ? (displayPeriods.length >= 2 ? displayPeriods.length - 2 : 0) : waterfallBaseIndex;
+              let compIdx = waterfallCompareIndex === -1 ? displayPeriods.length - 1 : waterfallCompareIndex;
               
-              if (baseIdx === -1 || baseIdx >= displayPeriods.length) {
-                  baseIdx = displayPeriods.length >= 2 ? displayPeriods.length - 2 : 0;
-              }
-              if (compIdx === -1 || compIdx >= displayPeriods.length) {
-                  compIdx = displayPeriods.length - 1;
-              }
-
               const wfBase = displayPeriods[baseIdx];
               const wfComp = displayPeriods[compIdx];
 
@@ -952,12 +872,8 @@
 
               let deltas = [];
               Object.values(dataModel.tree.children).forEach(child => {
-                  const pVal = getMetricValue(child, wfBase);
-                  const cVal = getMetricValue(child, wfComp);
-                  const diff = cVal - pVal;
-                  if (Math.abs(diff) > 0.01) {
-                      deltas.push({ name: child.name, value: diff });
-                  }
+                  const diff = getMetricValue(child, wfComp) - getMetricValue(child, wfBase);
+                  if (Math.abs(diff) > 0.01) deltas.push({ name: child.name, value: diff });
               });
 
               deltas.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
@@ -965,27 +881,16 @@
               if (deltas.length > 7) {
                   const top = deltas.slice(0, 7);
                   const otherVal = deltas.slice(7).reduce((sum, d) => sum + d.value, 0);
-                  if (Math.abs(otherVal) > 0.01) {
-                      top.push({ name: 'Other Groupings', value: otherVal });
-                  }
+                  if (Math.abs(otherVal) > 0.01) top.push({ name: 'Other Groupings', value: otherVal });
                   deltas = top;
               }
 
-              const steps = [];
-              steps.push({ label: wfBase.label, value: baseTotal, isTotal: true, startY: 0, endY: baseTotal });
-
+              const steps = [{ label: wfBase.label, value: baseTotal, isTotal: true, startY: 0, endY: baseTotal }];
               let runningTotal = baseTotal;
               deltas.forEach(d => {
-                  steps.push({
-                      label: d.name,
-                      value: d.value,
-                      isTotal: false,
-                      startY: runningTotal,
-                      endY: runningTotal + d.value
-                  });
+                  steps.push({ label: d.name, value: d.value, isTotal: false, startY: runningTotal, endY: runningTotal + d.value });
                   runningTotal += d.value;
               });
-
               steps.push({ label: wfComp.label, value: compTotal, isTotal: true, startY: 0, endY: compTotal });
               return { steps, wfBase, wfComp };
           }, [displayPeriods, waterfallBaseIndex, waterfallCompareIndex, dataModel, getMetricValue]);
@@ -994,8 +899,8 @@
               if (!waterfallData) {
                   return (
                       <div className="py-20 text-center text-gray-500">
-                          <p className="text-lg font-semibold mb-2">Insufficient Data for Waterfall</p>
-                          <p className="text-sm">The Waterfall chart requires at least two periods to compare. Ensure your filters provide multiple periods.</p>
+                          <p className="text-lg font-semibold mb-2">Insufficient Data</p>
+                          <p className="text-sm">The Waterfall chart requires at least two periods to compare.</p>
                       </div>
                   );
               }
@@ -1003,16 +908,12 @@
               const { steps } = waterfallData;
               const maxVal = Math.max(...steps.map(d => Math.max(d.startY, d.endY)));
               const minVal = Math.min(0, ...steps.map(d => Math.min(d.startY, d.endY)));
-
               const padding = (maxVal - minVal) * 0.1 || 10;
               const yMax = maxVal + padding;
               const yMin = minVal - padding;
               const yRange = yMax - yMin;
 
-              const width = 1000;
-              const chartHeight = 400;
-              const labelSpace = 120; 
-
+              const width = 1000, chartHeight = 400, labelSpace = 120; 
               const getY = (val) => chartHeight - ((val - yMin) / yRange) * chartHeight;
               const barWidth = width / steps.length;
               const barPadding = barWidth * 0.15;
@@ -1031,49 +932,23 @@
                                       </g>
                                   )
                               })}
-
                               {yMin < 0 && yMax > 0 && <line x1={0} y1={getY(0)} x2={width} y2={getY(0)} stroke="#6b7280" strokeWidth="1" />}
-
                               {steps.map((d, i) => {
                                   const x = i * barWidth + barPadding / 2;
                                   const w = barWidth - barPadding;
                                   const y = Math.min(getY(d.startY), getY(d.endY));
                                   const h = Math.max(2, Math.abs(getY(d.startY) - getY(d.endY)));
-
                                   let color = d.isTotal ? "#1e3a8a" : (d.value > 0 ? "#dc2626" : "#16a34a");
-
-                                  let connector = null;
-                                  if (i > 0) {
-                                      const prevY = getY(steps[i-1].endY);
-                                      connector = <line x1={x - barPadding} y1={prevY} x2={x} y2={prevY} stroke="#9ca3af" strokeDasharray="3 3" strokeWidth="1" />;
-                                  }
-
                                   const displayVal = metric === 'amount' ? formatCurrency(d.value) : formatCount(d.value);
                                   const labelStr = d.value > 0 && !d.isTotal ? '+' + displayVal : displayVal;
-                                  
                                   const shortLabel = d.label.length > 25 ? d.label.substring(0, 23) + '...' : d.label;
-
                                   return (
                                       <g key={i} className="group cursor-default">
                                           <title>{d.label}&#10;{d.isTotal ? 'Balance' : 'Variance'}: {displayVal}</title>
-                                          {connector}
+                                          {i > 0 && <line x1={x - barPadding} y1={getY(steps[i-1].endY)} x2={x} y2={getY(steps[i-1].endY)} stroke="#9ca3af" strokeDasharray="3 3" strokeWidth="1" />}
                                           <rect x={x} y={y} width={w} height={h} fill={color} rx="2" className="transition-opacity group-hover:opacity-80" />
-                                          
-                                          <text x={x + w/2} y={d.value >= 0 ? y - 8 : y + h + 16} textAnchor="middle" fill={color} fontWeight="bold" fontSize="11">
-                                              {labelStr}
-                                          </text>
-                                          
-                                          <text 
-                                            x={x + w/2} 
-                                            y={chartHeight + 15} 
-                                            textAnchor="end" 
-                                            fill="#4b5563" 
-                                            fontSize="11" 
-                                            fontWeight={d.isTotal ? "bold" : "normal"}
-                                            transform={`rotate(-35, ${x + w/2}, ${chartHeight + 15})`}
-                                          >
-                                              {shortLabel}
-                                          </text>
+                                          <text x={x + w/2} y={d.value >= 0 ? y - 8 : y + h + 16} textAnchor="middle" fill={color} fontWeight="bold" fontSize="11">{labelStr}</text>
+                                          <text x={x + w/2} y={chartHeight + 15} textAnchor="end" fill="#4b5563" fontSize="11" fontWeight={d.isTotal ? "bold" : "normal"} transform={`rotate(-35, ${x + w/2}, ${chartHeight + 15})`}>{shortLabel}</text>
                                       </g>
                                   )
                               })}
@@ -1083,14 +958,13 @@
               )
           };
 
-          // --- Export to Excel Function ---
+          // --- Export Function ---
           const exportToExcel = async () => {
             if (!dataModel) return;
             setIsProcessing(true);
             try {
               const XLSX = await loadExcelParser();
               const aoa = [];
-              
               const headerRow = [HIERARCHY_PRESETS[hierarchyIndex].label];
               displayPeriods.forEach((period, idx) => {
                 const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
@@ -1110,17 +984,11 @@
               flatRows.forEach(node => {
                 const indent = "   ".repeat(node.level);
                 const row = [String(indent + node.name)]; 
-                
                 displayPeriods.forEach((period, idx) => {
                   const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
                   if (viewMode === 'variance') {
-                    if (!prevPeriod) {
-                      row.push('-');
-                    } else {
-                      const currentVal = getMetricValue(node, period);
-                      const prevVal = getMetricValue(node, prevPeriod);
-                      row.push(currentVal - prevVal); 
-                    }
+                    if (!prevPeriod) row.push('-');
+                    else row.push(getMetricValue(node, period) - getMetricValue(node, prevPeriod)); 
                   } else {
                     row.push(getMetricValue(node, period)); 
                   }
@@ -1132,59 +1000,107 @@
               const ws = XLSX.utils.aoa_to_sheet(aoa);
               const wb = XLSX.utils.book_new();
               XLSX.utils.book_append_sheet(wb, ws, "Report View");
-              
-              const fileName = `UWI_Report_${timeGrouping}_${viewMode}.xlsx`;
-              XLSX.writeFile(wb, fileName);
+              XLSX.writeFile(wb, `UWI_Report_${timeGrouping}_${viewMode}.xlsx`);
             } catch (err) {
               console.error(err);
               alert("Failed to export to Excel.");
             }
             setIsProcessing(false);
           };
-          
+
+          // --- Admin Handlers ---
+          const handleUnionUpload = (e) => {
+              const file = e.target.files[0];
+              if (!file) return; 
+              processFile(file, async (parsed) => {
+                  const newRules = parsed.map(r => {
+                      let group = '', pct = 0, sm = '';
+                      for (const [k, v] of Object.entries(r)) {
+                          const c = String(k).toLowerCase().trim();
+                          if (c==='group' || c==='union group') group = String(v).trim();
+                          if (c==='percentage' || c==='pct' || c==='%') pct = parseFloat(v);
+                          if (c==='start month' || c==='month') sm = parseDateStrToMonthKey(v) || String(v).trim();
+                      }
+                      return { group, percentage: pct, startMonth: sm, id: Date.now() + Math.random() };
+                  }).filter(r => r.group && !isNaN(r.percentage) && r.startMonth);
+
+                  if (newRules.length === 0) return alert("Could not find valid columns.");
+                  saveAssumptionsState({ ...assumptions, union: [...(assumptions.union||[]), ...newRules] });
+                  if (unionInputRef.current) unionInputRef.current.value = null;
+                  alert(`Added ${newRules.length} Union increases.`);
+              });
+          };
+
           const handleIncrementUpload = (e) => {
               const file = e.target.files[0];
-              if (!file || !incMonth) return; 
-
+              if (!file) return; 
               processFile(file, async (parsed) => {
-                  if (parsed.length === 0) {
-                      alert("File is empty.");
-                      if (incInputRef.current) incInputRef.current.value = null;
-                      return;
-                  }
-                  
-                  const newIncrements = parsed.map(r => {
-                      let id = '', amount = 0;
-                      for (const [key, value] of Object.entries(r)) {
-                          const cleanKey = String(key).toLowerCase().trim();
-                          if (cleanKey === 'id' || cleanKey === 'id number' || cleanKey === 'employee id') id = String(value).trim();
-                          if (cleanKey === 'amount' || cleanKey === 'value' || cleanKey === 'increment') amount = parseAmount(value);
+                  const newRules = parsed.map(r => {
+                      let id = '', amt = 0, sm = '';
+                      for (const [k, v] of Object.entries(r)) {
+                          const c = String(k).toLowerCase().trim();
+                          if (c==='id' || c==='id number') id = String(v).trim();
+                          if (c==='amount' || c==='value') amt = parseAmount(v);
+                          if (c==='start month' || c==='month') sm = parseDateStrToMonthKey(v) || String(v).trim();
                       }
-                      return {
-                          id,
-                          amount,
-                          startMonth: incMonth,
-                          uid: Date.now() + Math.random()
-                      };
-                  }).filter(r => r.id && r.amount !== 0 && r.id !== 'undefined');
+                      return { id, amount: amt, startMonth: sm, uid: Date.now() + Math.random() };
+                  }).filter(r => r.id && r.amount !== 0 && r.startMonth);
 
-                  if (newIncrements.length === 0) {
-                      alert("Could not find valid 'ID' and 'Amount' columns in the file. Please check the file format.");
-                      if (incInputRef.current) incInputRef.current.value = null;
-                      return;
-                  }
-
-                  saveAssumptionsState({ ...assumptions, increments: [...(assumptions.increments||[]), ...newIncrements] });
+                  if (newRules.length === 0) return alert("Could not find valid columns.");
+                  saveAssumptionsState({ ...assumptions, increments: [...(assumptions.increments||[]), ...newRules] });
                   if (incInputRef.current) incInputRef.current.value = null;
-                  alert(`Successfully added ${newIncrements.length} increments starting ${formatMonthLabel(incMonth)}.`);
+                  alert(`Added ${newRules.length} flat increments.`);
+              });
+          };
+
+          const handleOneOffUpload = (e) => {
+              const file = e.target.files[0];
+              if (!file) return; 
+              processFile(file, async (parsed) => {
+                  const newRules = parsed.map(r => {
+                      let id = '', amt = 0, m = '';
+                      for (const [k, v] of Object.entries(r)) {
+                          const c = String(k).toLowerCase().trim();
+                          if (c==='id') id = String(v).trim();
+                          if (c==='amount') amt = parseAmount(v);
+                          if (c==='month') m = parseDateStrToMonthKey(v) || String(v).trim();
+                      }
+                      return { ID: id, Amount: amt, Month: m, uid: Date.now() + Math.random() };
+                  }).filter(r => r.ID && r.Amount && r.Month);
+
+                  if (newRules.length === 0) return alert("Could not find valid columns.");
+                  saveAssumptionsState({ ...assumptions, oneOffs: [...(assumptions.oneOffs||[]), ...newRules] });
+                  if (oneOffInputRef.current) oneOffInputRef.current.value = null;
+                  alert(`Added ${newRules.length} one-off payments.`);
+              });
+          };
+
+          const handleMappingUpload = (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              processFile(file, async (parsed) => {
+                  const map = {};
+                  parsed.forEach(r => {
+                      let org = '', fac = '', dept = '';
+                      for (const [k, v] of Object.entries(r)) {
+                          const c = String(k).toLowerCase().trim();
+                          if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
+                          if (c === 'faculty') fac = String(v).trim();
+                          if (c === 'department') dept = String(v).trim();
+                      }
+                      if (org) map[org] = { faculty: fac, dept: dept };
+                  });
+                  setMappingData(map);
+                  await saveToDB('mappingData', map);
+                  alert("Organizational Mapping successfully updated!");
+                  if (mappingInputRef.current) mappingInputRef.current.value = null;
               });
           };
 
           if (!dataModel) {
             return (
-              <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
-                <div className="max-w-xl w-full bg-white rounded-xl shadow-lg p-10 text-center relative">
-                  
+              <div className="min-h-screen flex flex-col items-center justify-center p-6 font-sans">
+                <div className="max-w-xl w-full bg-white rounded-xl shadow-lg p-10 text-center relative border border-gray-200">
                   {isProcessing ? (
                      <div className="py-12">
                        <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -1194,573 +1110,237 @@
                     <>
                       <img src={logoSrc} alt="UWI Logo" className="h-20 mx-auto mb-6 object-contain" onError={(e) => e.target.style.display='none'} />
                       <h1 className="text-3xl font-bold text-blue-900 mb-2">UWI Payroll Analytics</h1>
-                      <p className="text-gray-500 mb-8">Upload your raw transactional data (.csv, .xlsx, or .zip) to generate hierarchical reports, variance analyses, and projections.</p>
-                      
+                      <p className="text-gray-500 mb-8">Upload your raw transactional data (.csv, .xlsx, or .zip) to initialize the dashboard.</p>
                       <label className="block w-full border-2 border-dashed border-gray-300 rounded-xl p-10 cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-colors">
                         <UploadIcon />
                         <span className="text-blue-600 font-medium text-lg">Click to select Raw Data File</span>
-                        <p className="text-xs text-gray-400 mt-2 font-semibold">Supports .CSV, .XLSX, and .ZIP</p>
-                        <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/zip, application/x-zip-compressed" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
+                        <input type="file" accept=".csv, .xlsx, .xls, .zip" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
                       </label>
                     </>
                   )}
-
                 </div>
               </div>
             );
           }
 
           return (
-            <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-sm flex flex-col">
-              {/* ASSUMPTIONS MODAL */}
-              {showAssumptions && (
-                  <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                          <div className="flex justify-between items-center p-5 border-b border-gray-200 bg-gray-50 rounded-t-xl">
-                              <div>
-                                  <h2 className="text-xl font-bold text-gray-800">Forecast Assumptions & Filters</h2>
-                                  <p className="text-xs text-gray-500 mt-1">Rules applied automatically to future forecasts and historical filters.</p>
-                              </div>
-                              <button onClick={()=>setShowAssumptions(false)} className="text-gray-400 hover:text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                              </button>
-                          </div>
-                          
-                          <div className="flex px-6 pt-4 border-b border-gray-200">
-                              <button onClick={()=>setActiveAssumptionTab('union')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='union'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Union Increases</button>
-                              <button onClick={()=>setActiveAssumptionTab('increments')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='increments'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Flat Increments</button>
-                              <button onClick={()=>setActiveAssumptionTab('active')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='active'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Active Rules</button>
-                              <button onClick={()=>setActiveAssumptionTab('filters')} className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 ${activeAssumptionTab==='filters'?'border-blue-600 text-blue-700':'border-transparent text-gray-500 hover:text-gray-800'}`}>Data Filters</button>
-                          </div>
-                          
-                          <div className="p-6 overflow-y-auto flex-grow">
-                              {activeAssumptionTab === 'union' && (
-                                  <div className="space-y-4">
-                                      <p className="text-gray-600 mb-4">Apply a flat percentage increase to a specific Union Group starting in a specific month.</p>
-                                      <div>
-                                          <label className="block text-xs font-bold text-gray-700 mb-1">Target Union Group</label>
-                                          <select value={unionGroup} onChange={e=>setUnionGroup(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50">
-                                              <option value="">-- Select Group --</option>
-                                              {uniqueGroups.map(g => <option key={g} value={g}>{g}</option>)}
-                                          </select>
-                                      </div>
-                                      <div className="flex gap-4">
-                                          <div className="flex-1">
-                                              <label className="block text-xs font-bold text-gray-700 mb-1">Percentage Increase (%)</label>
-                                              <input type="number" placeholder="e.g. 5" value={unionPct} onChange={e=>setUnionPct(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50" />
-                                          </div>
-                                          <div className="flex-1">
-                                              <label className="block text-xs font-bold text-gray-700 mb-1">Start Month</label>
-                                              <select value={unionMonth} onChange={e=>setUnionMonth(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50">
-                                                  <option value="">-- Select Month --</option>
-                                                  {forecastMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}
-                                              </select>
-                                          </div>
-                                      </div>
-                                      <button onClick={() => {
-                                          if(!unionGroup || !unionPct || !unionMonth) return alert("Please fill all fields.");
-                                          const newRule = { group: unionGroup, percentage: parseFloat(unionPct), startMonth: unionMonth, id: Date.now() };
-                                          saveAssumptionsState({ ...assumptions, union: [...(assumptions.union||[]), newRule] });
-                                          setUnionPct('');
-                                      }} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full transition-colors">Apply Union Increase</button>
-                                  </div>
-                              )}
-
-                              {activeAssumptionTab === 'increments' && (
-                                  <div className="space-y-4">
-                                      <p className="text-gray-600 mb-4">Upload a CSV/Excel file containing exactly two columns: <b>ID</b> and <b>Amount</b>. The engine will map these flat monthly increments to the correct employees.</p>
-                                      <div>
-                                          <label className="block text-xs font-bold text-gray-700 mb-1">Start Month (Applies to all rows in file)</label>
-                                          <select value={incMonth} onChange={e=>setIncMonth(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50 mb-4">
-                                              <option value="">-- Select Month --</option>
-                                              {forecastMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}
-                                          </select>
-                                      </div>
-                                      <label className={`block w-full border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 transition-colors`}>
-                                        <ExcelIcon />
-                                        <span className="text-indigo-600 font-medium text-sm ml-2">Click to select Increments File</span>
-                                        <input 
-                                            type="file" 
-                                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
-                                            className="hidden" 
-                                            onClick={(e) => {
-                                                if (!incMonth) {
-                                                    e.preventDefault();
-                                                    alert("Please select a Start Month from the dropdown above before selecting your file.");
-                                                }
-                                            }}
-                                            onChange={handleIncrementUpload} 
-                                            ref={incInputRef} 
-                                        />
-                                      </label>
-                                  </div>
-                              )}
-
-                              {activeAssumptionTab === 'active' && (
-                                  <div>
-                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2">Union Increases</h3>
-                                    {(!assumptions.union || assumptions.union.length === 0) ? <p className="text-gray-400 italic text-xs mb-6">None active</p> : (
-                                        <ul className="mb-6 space-y-2">
-                                            {assumptions.union.map(u => (
-                                                <li key={u.id} className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200">
-                                                    <span><b>{u.group}</b> gets <b>+{u.percentage}%</b> starting <b>{formatMonthLabel(u.startMonth)}</b></span>
-                                                    <button onClick={() => saveAssumptionsState({...assumptions, union: assumptions.union.filter(x=>x.id!==u.id)})} className="text-red-500 hover:text-red-700 p-1"><TrashIcon/></button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-
-                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2 mt-4">Flat Increments</h3>
-                                    {(!assumptions.increments || assumptions.increments.length === 0) ? <p className="text-gray-400 italic text-xs mb-6">None active</p> : (
-                                        <div className="flex justify-between items-center bg-indigo-50 p-3 rounded border border-indigo-200">
-                                            <span><b>{assumptions.increments.length}</b> employee flat increments active.</span>
-                                            <button onClick={() => { if(window.confirm('Delete ALL flat increments?')) saveAssumptionsState({...assumptions, increments: []}) }} className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded font-bold hover:bg-red-200">Clear All Increments</button>
-                                        </div>
-                                    )}
-
-                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2 mt-6">Legacy Adjustments (One-Offs)</h3>
-                                    {(!assumptions.oneOffs || assumptions.oneOffs.length === 0) ? <p className="text-gray-400 italic text-xs mb-2">None active</p> : (
-                                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
-                                            <span><b>{assumptions.oneOffs.length}</b> legacy adjustments active.</span>
-                                            <button onClick={() => { if(window.confirm('Delete ALL legacy adjustments?')) saveAssumptionsState({...assumptions, oneOffs: []}) }} className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded font-bold hover:bg-red-200">Clear Old Adjustments</button>
-                                        </div>
-                                    )}
-                                  </div>
-                              )}
-
-                              {activeAssumptionTab === 'filters' && (
-                                  <div className="space-y-4">
-                                      <p className="text-gray-600 mb-4">Crop out unwanted historical data (e.g., if a July payroll row is bleeding into your August report).</p>
-                                      <div>
-                                          <label className="block text-xs font-bold text-gray-700 mb-1">Start Dashboard From:</label>
-                                          <select 
-                                              value={assumptions.startMonthFilter || ''} 
-                                              onChange={e => saveAssumptionsState({...assumptions, startMonthFilter: e.target.value})} 
-                                              className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50"
-                                          >
-                                              <option value="">-- Show All Uploaded Data --</option>
-                                              {rawMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}
-                                          </select>
-                                      </div>
-                                      <div className="bg-blue-50 p-4 rounded border border-blue-100 mt-4">
-                                          <p className="text-xs text-blue-800"><b>Pro Tip:</b> If your Excel file contains late adjustments from previous months (like retro-pay recorded on July 31st), setting this to <b>August 2025</b> will force the dashboard to completely ignore those July rows.</p>
-                                      </div>
-                                  </div>
-                              )}
-                          </div>
-                      </div>
-                  </div>
-              )}
-
+            <div className="min-h-screen p-4 md:p-8 font-sans text-sm flex flex-col">
+              
               <div className="bg-white rounded-t-xl shadow-sm border-b border-gray-200 p-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative">
-                
                 <div className="absolute top-4 right-6 flex items-center gap-4">
-                  <button 
-                    onClick={() => setShowAssumptions(true)} 
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm transition-colors hover:bg-indigo-100"
-                  >
-                    <SettingsIcon />
-                    Assumptions Engine
+                  <button onClick={() => setActiveTab('admin')} className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm hover:bg-indigo-100 transition-colors">
+                    <SettingsIcon /> Settings & Rules
                   </button>
-                  <button 
-                    onClick={handleClearData} 
-                    className="text-xs text-red-600 hover:text-red-800 hover:underline font-medium ml-2"
-                  >
-                    Clear DB
-                  </button>
+                  <button onClick={handleClearData} className="text-xs text-red-600 hover:text-red-800 hover:underline font-medium">Clear DB</button>
                 </div>
 
                 <div className="flex items-center gap-4 mt-6 xl:mt-0">
                   <img src={logoSrc} alt="UWI Logo" className="h-16 w-auto object-contain hidden sm:block" onError={(e) => e.target.style.display='none'} />
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                       UWI Cost & Headcount Report
-                    </h1>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">UWI Cost & Headcount Report</h1>
                     <p className="text-gray-500 mt-1 flex items-center">
-                      {dataModel ? `Actuals through ${formatMonthLabel(dataModel.baseMonth)} • Projected through Jul-27` : 'Processing Data...'}
-                      {((assumptions.union?.length||0) + (assumptions.increments?.length||0) > 0 || assumptions.startMonthFilter) && (
-                         <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800">
-                            Custom Rules Active
-                         </span>
+                      {`Actuals through ${formatMonthLabel(dataModel.baseMonth)} • Projected through Jul-27`}
+                      {((assumptions.union?.length||0) + (assumptions.increments?.length||0) + (assumptions.oneOffs?.length||0) > 0 || assumptions.startMonthFilter) && (
+                         <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800">Custom Rules Active</span>
                       )}
                     </p>
                   </div>
                 </div>
 
+                {activeTab !== 'admin' && (
                 <div className="flex flex-wrap items-center gap-4 mt-2 xl:mt-0">
-                  
                   <label className="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-medium text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1">
-                     <ExcelIcon />
-                     Append Raw Data
-                     <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, application/zip, application/x-zip-compressed" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
+                     <ExcelIcon /> Append Raw Data
+                     <input type="file" accept=".csv, .xlsx, .xls, .zip" className="hidden" onChange={handleFileUpload} />
                   </label>
+
+                  <div className="flex items-center bg-gray-50 border border-gray-200 p-1 rounded-lg">
+                      <span className="text-[10px] font-bold text-gray-400 ml-2 mr-2 uppercase tracking-wider">Include:</span>
+                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.base ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
+                          <input type="checkbox" className="hidden" checked={scenarioFilters.base} onChange={() => setScenarioFilters(p => ({...p, base: !p.base}))} />
+                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.base ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
+                              {scenarioFilters.base && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                          </div>
+                          Base
+                      </label>
+                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.union ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
+                          <input type="checkbox" className="hidden" checked={scenarioFilters.union} onChange={() => setScenarioFilters(p => ({...p, union: !p.union}))} />
+                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.union ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
+                              {scenarioFilters.union && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                          </div>
+                          Union
+                      </label>
+                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.increments ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
+                          <input type="checkbox" className="hidden" checked={scenarioFilters.increments} onChange={() => setScenarioFilters(p => ({...p, increments: !p.increments}))} />
+                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.increments ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
+                              {scenarioFilters.increments && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                          </div>
+                          Incr.
+                      </label>
+                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.oneOffs ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
+                          <input type="checkbox" className="hidden" checked={scenarioFilters.oneOffs} onChange={() => setScenarioFilters(p => ({...p, oneOffs: !p.oneOffs}))} />
+                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.oneOffs ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
+                              {scenarioFilters.oneOffs && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                          </div>
+                          One-Offs
+                      </label>
+                  </div>
 
                   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 p-1 rounded-lg">
                      <div className="relative">
-                        <select 
-                          className="appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded text-xs font-medium shadow-sm outline-none focus:border-blue-500"
-                          value={hierarchyIndex} 
-                          onChange={(e) => setHierarchyIndex(parseInt(e.target.value, 10))}
-                          disabled={isProcessing}
-                        >
-                          {HIERARCHY_PRESETS.map((preset, idx) => (
-                            <option key={idx} value={idx}>Hierarchy: {preset.label}</option>
-                          ))}
+                        <select className="appearance-none bg-white border border-gray-300 py-1.5 pl-3 pr-8 rounded text-xs font-medium focus:border-blue-500" value={hierarchyIndex} onChange={(e) => setHierarchyIndex(parseInt(e.target.value, 10))} disabled={isProcessing}>
+                          {HIERARCHY_PRESETS.map((p, i) => <option key={i} value={i}>Hierarchy: {p.label}</option>)}
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                        </div>
+                        <ChevronDown className="absolute right-2 top-2 text-gray-400" />
                      </div>
-
                      <div className="relative">
-                        <select 
-                          className="appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded text-xs font-medium shadow-sm outline-none focus:border-blue-500"
-                          value={timeGrouping} 
-                          onChange={(e) => setTimeGrouping(e.target.value)}
-                          disabled={isProcessing}
-                        >
+                        <select className="appearance-none bg-white border border-gray-300 py-1.5 pl-3 pr-8 rounded text-xs font-medium focus:border-blue-500" value={timeGrouping} onChange={(e) => setTimeGrouping(e.target.value)} disabled={isProcessing}>
                           <option value="month">Group: Monthly</option>
                           <option value="quarter">Group: Quarterly (FY)</option>
                           <option value="annual">Group: Annually (FY)</option>
-                          <option value="ytd">Group: YTD (Syncs w/ Dashboard)</option>
+                          <option value="ytd">Group: YTD</option>
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                        </div>
+                        <ChevronDown className="absolute right-2 top-2 text-gray-400" />
                      </div>
                   </div>
-
                   <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-                    <button 
-                      onClick={() => setMetric('amount')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'amount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      $ Dollar Value
-                    </button>
-                    <button 
-                      onClick={() => setMetric('headcount')}
-                      disabled={isProcessing}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'headcount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                      Headcount
-                    </button>
+                    <button onClick={() => setMetric('amount')} className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'amount' ? 'bg-white shadow text-blue-700' : 'text-gray-600'}`}>$ Amount</button>
+                    <button onClick={() => setMetric('headcount')} className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'headcount' ? 'bg-white shadow text-blue-700' : 'text-gray-600'}`}>Headcount</button>
                   </div>
-
-                  {activeTab === 'table' && (
-                      <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-                        <button 
-                          onClick={() => setViewMode('actuals')}
-                          disabled={isProcessing}
-                          className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'actuals' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-                        >
-                          Actuals/FCST
-                        </button>
-                        <button 
-                          onClick={() => setViewMode('variance')}
-                          disabled={isProcessing}
-                          className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${viewMode === 'variance' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:text-gray-900'}`}
-                        >
-                          Variance Mode
-                        </button>
-                      </div>
-                  )}
-
-                  {activeTab === 'table' && (
-                      <button 
-                        onClick={collapseAll}
-                        disabled={isProcessing}
-                        className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 font-medium text-gray-700 text-xs shadow-sm"
-                      >
-                        Collapse All
-                      </button>
-                  )}
-
-                  {activeTab === 'table' && (
-                      <button 
-                        onClick={exportToExcel}
-                        disabled={isProcessing || !dataModel}
-                        className="px-3 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-md bg-white font-medium text-xs shadow-sm flex items-center gap-1 transition-colors"
-                      >
-                        <ExcelIcon />
-                        Export to Excel
-                      </button>
-                  )}
                 </div>
+                )}
               </div>
               
-              {/* --- Dashboard Summary Section --- */}
-              {dashboardStats && (
+              {dashboardStats && activeTab !== 'admin' && (
                 <div className="bg-white shadow-sm border-x border-gray-200 p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
                   <div className="flex flex-col items-start min-w-[200px]">
                     <span className="text-xs font-semibold tracking-wider text-gray-400 uppercase mb-1">Executive Summary</span>
                     <div className="relative w-full">
-                      <select 
-                        className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-2 pl-3 pr-8 rounded-lg text-sm font-bold shadow-sm outline-none focus:border-blue-500 w-full"
-                        value={dashboardMonth} 
-                        onChange={(e) => setDashboardMonth(e.target.value)}
-                      >
-                        {[...dataModel.actualMonths, ...dataModel.forecastMonths].map(m => (
-                          <option key={m} value={m}>
-                            {formatMonthLabel(m)} {m === dataModel.baseMonth ? '(Base)' : dataModel.forecastMonths.includes(m) ? '(Forecast)' : '(Actual)'}
-                          </option>
-                        ))}
+                      <select className="appearance-none bg-gray-50 border border-gray-300 py-2 pl-3 pr-8 rounded-lg text-sm font-bold w-full" value={dashboardMonth} onChange={(e) => setDashboardMonth(e.target.value)}>
+                        {[...dataModel.actualMonths, ...dataModel.forecastMonths].map(m => <option key={m} value={m}>{formatMonthLabel(m)} {m === dataModel.baseMonth ? '(Base)' : dataModel.forecastMonths.includes(m) ? '(Forecast)' : '(Actual)'}</option>)}
                       </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        <ChevronDown />
-                      </div>
+                      <ChevronDown className="absolute right-2 top-2.5 text-gray-400" />
                     </div>
                     <span className="text-[10px] text-gray-400 mt-1">* Drives the YTD columns & cards</span>
                   </div>
 
                   <div className="flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                    {/* Amount Card */}
-                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-600 mb-1 truncate">Monthly Cost</p>
-                      <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(dashboardStats.amount)}>{formatCurrency(dashboardStats.amount)}</p>
-                    </div>
-                    {/* Amount Variance Card */}
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3"><p className="text-[11px] font-semibold text-blue-600 mb-1">Monthly Cost</p><p className="text-xl font-bold">{formatCurrency(dashboardStats.amount)}</p></div>
                     <div className={`border rounded-xl p-3 ${dashboardStats.amountVar > 0 ? 'bg-red-50/50 border-red-100' : dashboardStats.amountVar < 0 ? 'bg-green-50/50 border-green-100' : 'bg-gray-50 border-gray-100'}`}>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1 truncate">MoM Cost Var.</p>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-1">MoM Cost Var.</p>
                       <div className="flex items-center">
-                        {dashboardStats.hasPrev ? (
-                          <>
-                            {dashboardStats.amountVar > 0 ? <span className="text-red-600"><TrendingUp /></span> : dashboardStats.amountVar < 0 ? <span className="text-green-600"><TrendingDown /></span> : null}
-                            <p className={`text-lg font-bold truncate ${dashboardStats.amountVar > 0 ? 'text-red-700' : dashboardStats.amountVar < 0 ? 'text-green-700' : 'text-gray-700'}`} title={formatCurrency(dashboardStats.amountVar)}>
-                              {dashboardStats.amountVar > 0 ? '+' : ''}{formatCurrency(dashboardStats.amountVar)}
-                            </p>
-                          </>
-                        ) : <p className="text-lg font-bold text-gray-400">-</p>}
+                        {dashboardStats.hasPrev ? <><span className={dashboardStats.amountVar > 0 ? "text-red-600" : "text-green-600"}>{dashboardStats.amountVar > 0 ? <TrendingUp/> : (dashboardStats.amountVar < 0 ? <TrendingDown/> : null)}</span><p className={`text-lg font-bold ${dashboardStats.amountVar > 0 ? 'text-red-700' : 'text-green-700'}`}>{dashboardStats.amountVar > 0 ? '+' : ''}{formatCurrency(dashboardStats.amountVar)}</p></> : <p className="text-lg font-bold text-gray-400">-</p>}
                       </div>
                     </div>
-                    {/* YTD Amount Card */}
-                    <div className="bg-sky-50/50 border border-sky-200 rounded-xl p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-sky-700 mb-1 truncate">YTD Cost</p>
-                      <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(dashboardStats.ytdAmount)}>{formatCurrency(dashboardStats.ytdAmount)}</p>
-                    </div>
-
-                    {/* Headcount Card */}
-                    <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 mb-1 truncate">Monthly HC</p>
-                      <p className="text-xl font-bold text-gray-900 truncate">{formatCount(dashboardStats.hc)} <span className="text-[10px] font-normal text-gray-500 uppercase tracking-wide ml-0.5">IDs</span></p>
-                    </div>
-                    {/* Headcount Variance Card */}
+                    <div className="bg-sky-50/50 border border-sky-200 rounded-xl p-3"><p className="text-[11px] font-semibold text-sky-700 mb-1">YTD Cost</p><p className="text-xl font-bold">{formatCurrency(dashboardStats.ytdAmount)}</p></div>
+                    <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3"><p className="text-[11px] font-semibold text-indigo-600 mb-1">Monthly HC</p><p className="text-xl font-bold">{formatCount(dashboardStats.hc)} <span className="text-[10px] font-normal text-gray-500">IDs</span></p></div>
                     <div className={`border rounded-xl p-3 ${dashboardStats.hcVar > 0 ? 'bg-red-50/50 border-red-100' : dashboardStats.hcVar < 0 ? 'bg-green-50/50 border-green-100' : 'bg-gray-50 border-gray-100'}`}>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1 truncate">MoM HC Var.</p>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-1">MoM HC Var.</p>
                       <div className="flex items-center">
-                        {dashboardStats.hasPrev ? (
-                          <>
-                            {dashboardStats.hcVar > 0 ? <span className="text-red-600"><TrendingUp /></span> : dashboardStats.hcVar < 0 ? <span className="text-green-600"><TrendingDown /></span> : null}
-                            <p className={`text-lg font-bold truncate ${dashboardStats.hcVar > 0 ? 'text-red-700' : dashboardStats.hcVar < 0 ? 'text-green-700' : 'text-gray-700'}`}>
-                              {dashboardStats.hcVar > 0 ? '+' : ''}{formatCount(dashboardStats.hcVar)}
-                            </p>
-                          </>
-                        ) : <p className="text-lg font-bold text-gray-400">-</p>}
+                        {dashboardStats.hasPrev ? <><span className={dashboardStats.hcVar > 0 ? "text-red-600" : "text-green-600"}>{dashboardStats.hcVar > 0 ? <TrendingUp/> : (dashboardStats.hcVar < 0 ? <TrendingDown/> : null)}</span><p className={`text-lg font-bold ${dashboardStats.hcVar > 0 ? 'text-red-700' : 'text-green-700'}`}>{dashboardStats.hcVar > 0 ? '+' : ''}{formatCount(dashboardStats.hcVar)}</p></> : <p className="text-lg font-bold text-gray-400">-</p>}
                       </div>
                     </div>
-                    {/* YTD Headcount Card */}
-                    <div className="bg-violet-50/50 border border-violet-200 rounded-xl p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-700 mb-1 truncate">YTD Unique HC</p>
-                      <p className="text-xl font-bold text-gray-900 truncate">{formatCount(dashboardStats.ytdHc)} <span className="text-[10px] font-normal text-gray-500 uppercase tracking-wide ml-0.5">IDs</span></p>
-                    </div>
+                    <div className="bg-violet-50/50 border border-violet-200 rounded-xl p-3"><p className="text-[11px] font-semibold text-violet-700 mb-1">YTD Unique HC</p><p className="text-xl font-bold">{formatCount(dashboardStats.ytdHc)} <span className="text-[10px] font-normal text-gray-500">IDs</span></p></div>
                   </div>
                 </div>
               )}
 
               {/* --- Tabs Navigation --- */}
               <div className="bg-white border-x border-b border-gray-200 px-6 pt-4 flex gap-6 border-t-4 border-t-gray-50">
-                  <button 
-                      onClick={() => setActiveTab('table')}
-                      className={`pb-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'table' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                  >
-                      <TableIcon /> Report Builder View
-                  </button>
-                  <button 
-                      onClick={() => setActiveTab('waterfall')}
-                      className={`pb-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'waterfall' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                  >
-                      <ChartIcon /> Movement Waterfall Chart
-                  </button>
+                  <button onClick={() => setActiveTab('table')} className={`pb-3 font-semibold text-sm border-b-2 ${activeTab === 'table' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}><TableIcon /> Report Builder View</button>
+                  <button onClick={() => setActiveTab('waterfall')} className={`pb-3 font-semibold text-sm border-b-2 ${activeTab === 'waterfall' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}><ChartIcon /> Movement Waterfall</button>
+                  <button onClick={() => setActiveTab('admin')} className={`pb-3 font-semibold text-sm border-b-2 ${activeTab === 'admin' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}><SettingsIcon /> Admin & Settings</button>
               </div>
 
               {/* --- Main Content Area --- */}
-              <div className="bg-white shadow-sm rounded-b-xl flex-grow overflow-hidden flex flex-col border-x border-b border-gray-200 relative">
+              <div className="bg-white shadow-sm rounded-b-xl flex-grow overflow-hidden flex flex-col border-x border-b border-gray-200 relative min-h-[400px]">
                 {isProcessing && (
                   <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center">
-                    <div className="text-blue-600 font-semibold text-lg animate-pulse flex items-center bg-white px-6 py-3 rounded-full shadow-lg border border-blue-100">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                      Updating Engine...
+                    <div className="text-blue-600 font-semibold text-lg flex items-center bg-white px-6 py-3 rounded-full shadow-lg border border-blue-100">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      Processing Engine...
                     </div>
                   </div>
                 )}
 
                 {/* --- TABLE TAB --- */}
                 {activeTab === 'table' && (
-                    <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
-                      {dataModel && (
-                        <table className="w-full text-left border-collapse">
-                          <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                            <tr>
-                              <th className="px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[350px]">
-                                {HIERARCHY_PRESETS[hierarchyIndex].label}
-                              </th>
-                              
-                              {displayPeriods.map((period, idx) => {
-                                const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                                const isFcst = period.type === 'forecast';
-                                const isMixed = period.type === 'mixed';
-                                const headerStyle = isFcst ? 'bg-indigo-50/80 text-indigo-900' : isMixed ? 'bg-blue-50/50 text-blue-900' : 'text-gray-700';
-
-                                return (
-                                  <th key={period.key} className={`px-3 py-3 font-semibold text-right border-b border-gray-200 whitespace-nowrap ${headerStyle}`}>
-                                    {viewMode === 'variance' && prevPeriod ? (
-                                      <span className="text-xs">{period.label} vs<br/>{prevPeriod.label}</span>
-                                    ) : (
-                                      <>
-                                        {period.label}
-                                        {period.containsBaseMonth && <span className="ml-1 text-[10px] uppercase tracking-wider text-blue-600" title="Contains Base Month">(Base)</span>}
-                                        {isFcst && <span className="ml-1 text-[10px] uppercase opacity-70">(FCST)</span>}
-                                        {isMixed && <span className="ml-1 text-[10px] uppercase opacity-70">(Act+Fcst)</span>}
-                                      </>
-                                    )}
-                                  </th>
-                                );
-                              })}
-                              
-                              <th className="px-4 py-3 font-bold text-right border-b border-l-2 border-gray-300 whitespace-nowrap bg-gray-200 text-gray-900 shadow-sm">
-                                Total
-                              </th>
-                            </tr>
-                          </thead>
-                          
-                          <tbody className="divide-y divide-gray-100">
-                            {flatRows.map((node) => {
-                              const isExpanded = expandedRows.has(node.id);
-                              const hasChildren = node.children && Object.keys(node.children).length > 0;
-                              
-                              let rowStyle = "hover:bg-gray-50 transition-colors group";
-                              let indentPx = node.level * 24 + 16; 
-                              let fontStyle = "text-gray-700";
-                              
-                              if (node.level === 0) {
-                                rowStyle = "bg-gray-50 hover:bg-gray-100 border-t-2 border-gray-300";
-                                fontStyle = "font-bold text-gray-900";
-                              } else if (node.level === 1) {
-                                fontStyle = "font-semibold text-gray-800";
-                              } else if (!hasChildren) {
-                                fontStyle = "text-gray-500 text-xs";
-                              }
-
-                              const rowTotal = getRowTotal(node);
-                              let totalColorClass = "text-gray-900";
-                              if (viewMode === 'variance') {
-                                 if (rowTotal > 0) totalColorClass = "text-red-700";
-                                 if (rowTotal < 0) totalColorClass = "text-green-700";
-                              }
-
-                              return (
-                                <tr key={node.id} className={rowStyle}>
-                                  <td className={`py-2 border-r border-gray-100 whitespace-nowrap ${fontStyle}`} style={{ paddingLeft: `${indentPx}px`, paddingRight: '16px' }}>
-                                    <div className="flex items-center">
-                                      {hasChildren ? (
-                                        <button 
-                                          onClick={() => toggleRow(node.id)} 
-                                          className="mr-2 text-gray-400 hover:text-blue-600 focus:outline-none p-1 rounded hover:bg-blue-50 transition-colors"
-                                        >
-                                          {isExpanded ? <ChevronDown /> : <ChevronRight />}
-                                        </button>
-                                      ) : (
-                                        <span className="w-7 mr-2 inline-block"></span>
-                                      )}
-                                      <span className="truncate max-w-md" title={node.name}>{node.name}</span>
-                                    </div>
-                                  </td>
-
-                                  {displayPeriods.map((period, idx) => {
-                                    const prevPeriod = idx > 0 ? displayPeriods[idx - 1] : null;
-                                    return renderValueCell(node, period, prevPeriod);
-                                  })}
-                                  
-                                  <td className={`px-4 py-2 text-right font-bold border-l-2 border-gray-200 bg-gray-50/50 ${totalColorClass}`}>
-                                    {viewMode === 'variance' && rowTotal > 0 ? '+' : ''}
-                                    {metric === 'amount' ? formatCurrency(rowTotal) : formatCount(rowTotal)}
-                                  </td>
+                    <div className="flex flex-col h-full">
+                        <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
+                            <div className="bg-white border border-gray-300 p-1 rounded-lg inline-flex">
+                                <button onClick={() => setViewMode('actuals')} className={`px-3 py-1 rounded-md font-medium text-xs ${viewMode === 'actuals' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}>View Actuals</button>
+                                <button onClick={() => setViewMode('variance')} className={`px-3 py-1 rounded-md font-medium text-xs ${viewMode === 'variance' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}>View Variance</button>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={collapseAll} className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-xs shadow-sm">Collapse All</button>
+                                <button onClick={exportToExcel} className="px-3 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-md bg-white text-xs shadow-sm flex items-center"><ExcelIcon /> Export to Excel</button>
+                            </div>
+                        </div>
+                        <div className="overflow-auto flex-grow">
+                          {dataModel && (
+                            <table className="w-full text-left border-collapse">
+                              <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                  <th className="px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[350px]">{HIERARCHY_PRESETS[hierarchyIndex].label}</th>
+                                  {displayPeriods.map((period, idx) => (
+                                      <th key={period.key} className={`px-3 py-3 font-semibold text-right border-b border-gray-200 whitespace-nowrap ${period.type === 'forecast' ? 'bg-indigo-50/80 text-indigo-900' : period.type === 'mixed' ? 'bg-blue-50/50 text-blue-900' : 'text-gray-700'}`}>
+                                        {viewMode === 'variance' && idx > 0 ? <span className="text-xs">{period.label} vs<br/>{displayPeriods[idx-1].label}</span> : <>{period.label}{period.containsBaseMonth && <span className="ml-1 text-[10px] text-blue-600">(Base)</span>}</>}
+                                      </th>
+                                  ))}
+                                  <th className="px-4 py-3 font-bold text-right border-b border-l-2 border-gray-300 bg-gray-200 text-gray-900">Total</th>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {flatRows.map((node) => {
+                                  const rowTotal = getRowTotal(node);
+                                  return (
+                                    <tr key={node.id} className={node.level === 0 ? "bg-gray-50 hover:bg-gray-100 border-t-2 border-gray-300 font-bold" : "hover:bg-gray-50 group"}>
+                                      <td className="py-2 border-r border-gray-100 whitespace-nowrap" style={{ paddingLeft: `${node.level * 24 + 16}px`, paddingRight: '16px' }}>
+                                        <div className="flex items-center">
+                                          {(node.children && Object.keys(node.children).length > 0) ? <button onClick={() => toggleRow(node.id)} className="mr-2 text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50">{expandedRows.has(node.id) ? <ChevronDown /> : <ChevronRight />}</button> : <span className="w-7 mr-2"></span>}
+                                          <span className="truncate max-w-md" title={node.name}>{node.name}</span>
+                                        </div>
+                                      </td>
+                                      {displayPeriods.map((period, idx) => {
+                                          if (viewMode === 'variance' && idx === 0) return <td key={period.key} className="px-3 py-2 text-right text-gray-400">-</td>;
+                                          const val = viewMode === 'variance' ? (getMetricValue(node, period) - getMetricValue(node, displayPeriods[idx-1])) : getMetricValue(node, period);
+                                          const color = viewMode === 'variance' ? (val > 0 ? "text-red-600 font-medium" : (val < 0 ? "text-green-600 font-medium" : "text-gray-400")) : "text-gray-800";
+                                          return <td key={period.key} className={`px-3 py-2 text-right ${color} ${period.type === 'forecast' ? 'bg-indigo-50/30' : ''}`}>{viewMode === 'variance' && val > 0 ? '+' : ''}{metric === 'amount' ? formatCurrency(val) : formatCount(val)}</td>;
+                                      })}
+                                      <td className={`px-4 py-2 text-right font-bold border-l-2 border-gray-200 bg-gray-50/50 ${viewMode==='variance'?(rowTotal>0?"text-red-700":"text-green-700"):"text-gray-900"}`}>{viewMode==='variance'&&rowTotal>0?'+':''}{metric==='amount'?formatCurrency(rowTotal):formatCount(rowTotal)}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
                     </div>
                 )}
                 
                 {/* --- WATERFALL TAB --- */}
                 {activeTab === 'waterfall' && (
-                    <div className="p-8 h-full bg-gray-50/50">
+                    <div className="p-8 h-full bg-gray-50/50 overflow-y-auto flex-grow">
                         {displayPeriods.length < 2 ? (
-                            <div className="py-20 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div className="py-20 text-center text-gray-500 bg-white rounded-xl border border-gray-200">
                                 <ChartIcon />
-                                <p className="text-xl font-bold mt-4 mb-2 text-gray-800">Insufficient Data for Waterfall</p>
-                                <p className="text-sm max-w-md mx-auto">The Waterfall Chart requires at least two periods to compare movement. Ensure your filters provide multiple periods.</p>
+                                <p className="text-xl font-bold mt-4 mb-2">Insufficient Data</p>
+                                <p className="text-sm">The Waterfall chart requires at least two periods to compare.</p>
                             </div>
                         ) : (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-800">Movement Variance Analysis</h3>
-                                        <p className="text-sm text-gray-500">Grouped by: {HIERARCHY_PRESETS[hierarchyIndex].keys[0]}</p>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-gray-100 p-1 rounded-lg inline-flex mr-4">
-                                          <button 
-                                            onClick={() => setMetric('amount')}
-                                            className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'amount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                                          >
-                                            $ Amount
-                                          </button>
-                                          <button 
-                                            onClick={() => setMetric('headcount')}
-                                            className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'headcount' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                                          >
-                                            Headcount
-                                          </button>
+                                    <div><h3 className="text-lg font-bold text-gray-800">Movement Variance</h3><p className="text-sm text-gray-500">Grouped by: {HIERARCHY_PRESETS[hierarchyIndex].keys[0]}</p></div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className="flex items-center gap-2"><label className="text-xs font-semibold text-gray-500 uppercase w-16 text-right">Base:</label>
+                                            <select className="bg-gray-50 border border-gray-300 py-1.5 px-3 rounded-lg text-sm font-semibold" value={waterfallBaseIndex === -1 ? (displayPeriods.length >= 2 ? displayPeriods.length - 2 : 0) : waterfallBaseIndex} onChange={(e) => setWaterfallBaseIndex(parseInt(e.target.value, 10))}>
+                                                {displayPeriods.map((p, i) => <option key={`base-${i}`} value={i}>{p.label}</option>)}
+                                            </select>
                                         </div>
-                                        
-                                        <div className="flex flex-col items-end gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-right">Base:</label>
-                                                <div className="relative">
-                                                    <select 
-                                                        className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-1.5 pl-3 pr-8 rounded-lg text-sm font-semibold shadow-sm outline-none focus:border-blue-500"
-                                                        value={waterfallBaseIndex === -1 ? (displayPeriods.length >= 2 ? displayPeriods.length - 2 : 0) : waterfallBaseIndex}
-                                                        onChange={(e) => setWaterfallBaseIndex(parseInt(e.target.value, 10))}
-                                                    >
-                                                        {displayPeriods.map((p, i) => (
-                                                            <option key={`base-${i}`} value={i}>{p.label}</option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                                        <ChevronDown />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-right">Target:</label>
-                                                <div className="relative">
-                                                    <select 
-                                                        className="appearance-none bg-gray-50 border border-gray-300 text-gray-900 py-1.5 pl-3 pr-8 rounded-lg text-sm font-semibold shadow-sm outline-none focus:border-blue-500"
-                                                        value={waterfallCompareIndex === -1 ? displayPeriods.length - 1 : waterfallCompareIndex}
-                                                        onChange={(e) => setWaterfallCompareIndex(parseInt(e.target.value, 10))}
-                                                    >
-                                                        {displayPeriods.map((p, i) => (
-                                                            <option key={`comp-${i}`} value={i}>{p.label}</option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                                        <ChevronDown />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div className="flex items-center gap-2"><label className="text-xs font-semibold text-gray-500 uppercase w-16 text-right">Target:</label>
+                                            <select className="bg-gray-50 border border-gray-300 py-1.5 px-3 rounded-lg text-sm font-semibold" value={waterfallCompareIndex === -1 ? displayPeriods.length - 1 : waterfallCompareIndex} onChange={(e) => setWaterfallCompareIndex(parseInt(e.target.value, 10))}>
+                                                {displayPeriods.map((p, i) => <option key={`comp-${i}`} value={i}>{p.label}</option>)}
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -1769,12 +1349,172 @@
                         )}
                     </div>
                 )}
+
+                {/* --- ADMIN TAB --- */}
+                {activeTab === 'admin' && (
+                    <div className="flex h-full flex-grow overflow-hidden">
+                        <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col p-4">
+                            <h3 className="font-bold text-gray-400 text-xs tracking-wider uppercase mb-4 ml-2">Settings Menu</h3>
+                            <button onClick={()=>setActiveAdminTab('union')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='union'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Union Increases</button>
+                            <button onClick={()=>setActiveAdminTab('increments')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='increments'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Flat Increments</button>
+                            <button onClick={()=>setActiveAdminTab('oneoffs')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='oneoffs'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>One-Off Payments</button>
+                            <button onClick={()=>setActiveAdminTab('mapping')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='mapping'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Organizational Mapping</button>
+                            <button onClick={()=>setActiveAdminTab('active')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 mt-4 ${activeAdminTab==='active'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Manage Active Rules</button>
+                            <button onClick={()=>setActiveAdminTab('filters')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='filters'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Data Filters</button>
+                            <button onClick={()=>setActiveAdminTab('glossary')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mt-auto border border-gray-300 ${activeAdminTab==='glossary'?'bg-gray-200 text-gray-800':'text-gray-600 hover:bg-gray-100'}`}>Glossary & Help</button>
+                        </div>
+                        
+                        <div className="flex-1 p-8 overflow-y-auto bg-white">
+                            {activeAdminTab === 'union' && (
+                                <div className="max-w-2xl">
+                                    <h2 className="text-2xl font-bold mb-2">Union & Group Increases</h2>
+                                    <p className="text-gray-600 mb-8">Upload a CSV file or manually enter a percentage increase to apply to a specific group starting on a target month.</p>
+                                    
+                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
+                                        <h3 className="font-bold text-gray-800 mb-4">Bulk Upload via CSV/Excel</h3>
+                                        <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
+                                            <UploadIcon />
+                                            <span className="text-indigo-600 font-medium text-sm">Select File</span>
+                                            <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleUnionUpload} ref={unionInputRef} />
+                                        </label>
+                                        <button onClick={()=>downloadTemplate('union')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
+                                    </div>
+
+                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">Or Add Single Rule Manually</h3>
+                                    <div className="grid grid-cols-3 gap-4 mb-4">
+                                        <div><label className="block text-xs font-bold mb-1 text-gray-500">Group</label>
+                                        <select value={assumptions.tempUnionGroup||''} onChange={e=>setAssumptions({...assumptions, tempUnionGroup:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{uniqueGroups.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+                                        <div><label className="block text-xs font-bold mb-1 text-gray-500">Percentage (%)</label><input type="number" value={assumptions.tempUnionPct||''} onChange={e=>setAssumptions({...assumptions, tempUnionPct:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50" /></div>
+                                        <div><label className="block text-xs font-bold mb-1 text-gray-500">Start Month</label>
+                                        <select value={assumptions.tempUnionMonth||''} onChange={e=>setAssumptions({...assumptions, tempUnionMonth:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{forecastMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}</select></div>
+                                    </div>
+                                    <button onClick={() => {
+                                        if(!assumptions.tempUnionGroup || !assumptions.tempUnionPct || !assumptions.tempUnionMonth) return alert("Fill all fields.");
+                                        saveAssumptionsState({ ...assumptions, tempUnionPct: '', union: [...(assumptions.union||[]), { group: assumptions.tempUnionGroup, percentage: parseFloat(assumptions.tempUnionPct), startMonth: assumptions.tempUnionMonth, id: Date.now() }] });
+                                    }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">Apply Rule</button>
+                                </div>
+                            )}
+
+                            {activeAdminTab === 'increments' && (
+                                <div className="max-w-2xl">
+                                    <h2 className="text-2xl font-bold mb-2">Flat Increments</h2>
+                                    <p className="text-gray-600 mb-8">Upload a file linking Employee IDs to flat dollar amount increases that compound forever starting from the designated month.</p>
+                                    
+                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                                        <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
+                                            <UploadIcon />
+                                            <span className="text-indigo-600 font-medium text-sm">Select File</span>
+                                            <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleIncrementUpload} ref={incInputRef} />
+                                        </label>
+                                        <button onClick={()=>downloadTemplate('increments')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeAdminTab === 'oneoffs' && (
+                                <div className="max-w-2xl">
+                                    <h2 className="text-2xl font-bold mb-2">One-Off Payments</h2>
+                                    <p className="text-gray-600 mb-8">Upload a file mapping Employee IDs to specific dollar amounts that should ONLY trigger in the designated month (e.g. retroactive pay, bonuses).</p>
+                                    
+                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                                        <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
+                                            <UploadIcon />
+                                            <span className="text-indigo-600 font-medium text-sm">Select File</span>
+                                            <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleOneOffUpload} ref={oneOffInputRef} />
+                                        </label>
+                                        <button onClick={()=>downloadTemplate('oneoffs')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeAdminTab === 'mapping' && (
+                                <div className="max-w-2xl">
+                                    <h2 className="text-2xl font-bold mb-2">Organizational Mapping</h2>
+                                    <p className="text-gray-600 mb-8">Upload an Excel/CSV file to map Org numbers to distinct Faculties and Departments. Your file should have columns for <b>Org</b>, <b>Faculty</b>, and <b>Department</b>.</p>
+                                    
+                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                                        <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
+                                            <UploadIcon />
+                                            <span className="text-indigo-600 font-medium text-sm">Select Mapping File</span>
+                                            <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleMappingUpload} ref={mappingInputRef} />
+                                        </label>
+                                        <button onClick={()=>downloadTemplate('mapping')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeAdminTab === 'active' && (
+                                <div className="max-w-3xl">
+                                    <h2 className="text-2xl font-bold mb-6">Manage Active Rules</h2>
+                                    
+                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2">Union Increases</h3>
+                                    {(!assumptions.union || assumptions.union.length === 0) ? <p className="text-gray-400 italic text-sm mb-8">None active</p> : (
+                                        <ul className="mb-8 space-y-2">
+                                            {assumptions.union.map(u => (
+                                                <li key={u.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">
+                                                    <span><b>{u.group}</b> gets <b>+{u.percentage}%</b> starting <b>{formatMonthLabel(u.startMonth)}</b></span>
+                                                    <button onClick={() => saveAssumptionsState({...assumptions, union: assumptions.union.filter(x=>x.id!==u.id)})} className="text-red-500 hover:text-red-700 p-1"><TrashIcon/></button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+
+                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2">Flat Increments</h3>
+                                    {(!assumptions.increments || assumptions.increments.length === 0) ? <p className="text-gray-400 italic text-sm mb-8">None active</p> : (
+                                        <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-8 text-sm">
+                                            <span><b>{assumptions.increments.length}</b> employee flat increments active.</span>
+                                            <button onClick={() => { if(window.confirm('Delete ALL flat increments?')) saveAssumptionsState({...assumptions, increments: []}) }} className="bg-red-100 text-red-700 px-3 py-1.5 rounded font-bold hover:bg-red-200 transition-colors">Clear All Increments</button>
+                                        </div>
+                                    )}
+
+                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2">One-Off Payments</h3>
+                                    {(!assumptions.oneOffs || assumptions.oneOffs.length === 0) ? <p className="text-gray-400 italic text-sm mb-8">None active</p> : (
+                                        <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm">
+                                            <span><b>{assumptions.oneOffs.length}</b> one-off adjustments active.</span>
+                                            <button onClick={() => { if(window.confirm('Delete ALL one-offs?')) saveAssumptionsState({...assumptions, oneOffs: []}) }} className="bg-red-100 text-red-700 px-3 py-1.5 rounded font-bold hover:bg-red-200 transition-colors">Clear All One-Offs</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {activeAdminTab === 'filters' && (
+                                <div className="max-w-2xl">
+                                    <h2 className="text-2xl font-bold mb-2">Data Filters</h2>
+                                    <p className="text-gray-600 mb-8">Crop out unwanted historical data to ensure accurate baselines.</p>
+                                    
+                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                                      <label className="block text-sm font-bold text-gray-700 mb-2">Start Dashboard From:</label>
+                                      <select value={assumptions.startMonthFilter || ''} onChange={e => saveAssumptionsState({...assumptions, startMonthFilter: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-white mb-4 shadow-sm">
+                                          <option value="">-- Show All Uploaded Data --</option>
+                                          {rawMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}
+                                      </select>
+                                      <div className="bg-blue-50 p-4 rounded border border-blue-100 text-sm text-blue-800">
+                                          <b>Pro Tip:</b> If your Excel file contains late adjustments from previous months (like retro-pay recorded on July 31st), setting this to <b>August 2025</b> will force the dashboard to completely ignore those July rows and treat August as the true baseline.
+                                      </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeAdminTab === 'glossary' && (
+                                <div className="max-w-3xl">
+                                    <h2 className="text-2xl font-bold mb-6">Glossary & Definitions</h2>
+                                    <div className="space-y-6">
+                                        <div><h4 className="font-bold text-gray-800 text-lg">Base Month</h4><p className="text-gray-600 text-sm mt-1">The most recent month of actual data provided in your raw CSV/Excel upload. All forecasts are built by carrying this month forward.</p></div>
+                                        <div><h4 className="font-bold text-gray-800 text-lg">Headcount (Unique IDs)</h4><p className="text-gray-600 text-sm mt-1">The system counts the unique Employee IDs within a timeframe. If an employee is split across two accounts, they only count as <b>1</b> Headcount. In YTD views, an employee who existed in Jan and Feb is still only counted as <b>1</b> for the YTD Total.</p></div>
+                                        <div><h4 className="font-bold text-gray-800 text-lg">Financial Year (FY)</h4><p className="text-gray-600 text-sm mt-1">The UWI Financial Year runs from <b>August 1st</b> through <b>July 31st</b>. YTD and Annual groupings automatically conform to this schedule.</p></div>
+                                        <div><h4 className="font-bold text-gray-800 text-lg">Variance</h4><p className="text-gray-600 text-sm mt-1">Calculated as `Current Period - Previous Period`. A positive variance (Red) indicates higher costs or more employees. A negative variance (Green) indicates lower costs or fewer employees.</p></div>
+                                        <div><h4 className="font-bold text-gray-800 text-lg">Flat Increment vs One-Off</h4><p className="text-gray-600 text-sm mt-1">A Flat Increment adds a specific dollar amount to an employee's pay from the chosen start month <b>onwards forever</b>. A One-Off payment adds a dollar amount to <b>only that specific month</b>.</p></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
               </div>
             </div>
           );
         }
 
-        // Render the React application
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
