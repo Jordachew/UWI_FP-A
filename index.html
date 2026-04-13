@@ -194,9 +194,6 @@
             } else if (type === 'oneoffs') {
                 content = "ID,Amount,Month\n100123,50000,2025-12\n100124,120000,2026-03\n";
                 filename = "template_one_offs.csv";
-            } else if (type === 'mapping') {
-                content = "Org,Faculty,Department\n7403,Faculty of Medical Sciences,Clinical Department\n3106,Central Campus Services,Central Campus\n";
-                filename = "template_org_mapping.csv";
             }
             const blob = new Blob([content], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
@@ -208,14 +205,14 @@
         };
 
         const HIERARCHY_PRESETS = [
-          { label: 'Faculty > Dept > Account > Position > Emp', keys: ['Mapped Faculty', 'Mapped Department', 'Acct. Description', 'Posn Desc', 'Name'] },
-          { label: 'Faculty > Dept > Position > Emp', keys: ['Mapped Faculty', 'Mapped Department', 'Posn Desc', 'Name'] },
+          { label: 'Faculty > Dept > Account > Position > Emp', keys: ['Mapped Faculty', 'Department name', 'Acct. Description', 'Posn Desc', 'Name'] },
+          { label: 'Faculty > Dept > Position > Emp', keys: ['Mapped Faculty', 'Department name', 'Posn Desc', 'Name'] },
           { label: 'Faculty Only', keys: ['Mapped Faculty'] },
-          { label: 'Dept > Account > Position > Emp', keys: ['Mapped Department', 'Acct. Description', 'Posn Desc', 'Name'] },
-          { label: 'Position > Dept > Emp', keys: ['Posn Desc', 'Mapped Department', 'Name'] },
-          { label: 'Department Only', keys: ['Mapped Department'] },
-          { label: 'Account Category > Dept', keys: ['Acct. Description', 'Mapped Department'] },
-          { label: 'Account # > Faculty > Dept > Emp', keys: ['Account #', 'Mapped Faculty', 'Mapped Department', 'Name'] },
+          { label: 'Dept > Account > Position > Emp', keys: ['Department name', 'Acct. Description', 'Posn Desc', 'Name'] },
+          { label: 'Position > Dept > Emp', keys: ['Posn Desc', 'Department name', 'Name'] },
+          { label: 'Department Only', keys: ['Department name'] },
+          { label: 'Account Category > Dept', keys: ['Acct. Description', 'Department name'] },
+          { label: 'Account # > Faculty > Dept > Emp', keys: ['Account #', 'Mapped Faculty', 'Department name', 'Name'] },
           { label: 'Account # > Account Category', keys: ['Account #', 'Acct. Description'] },
           { label: 'Position Only', keys: ['Posn Desc'] },
           { label: 'Group Only', keys: ['Group'] },
@@ -224,15 +221,11 @@
 
         function App() {
           const [rawData, setRawData] = useState(null);
-          const [mappingData, setMappingData] = useState(null);
           const [isProcessing, setIsProcessing] = useState(true); 
           
           // Unified Assumptions State
           const [assumptions, setAssumptions] = useState({ oneOffs: [], increments: [], union: [], startMonthFilter: '' });
           const [activeAdminTab, setActiveAdminTab] = useState('union');
-          
-          // Scenario Filters
-          const [scenarioFilters, setScenarioFilters] = useState({ base: true, union: true, increments: true, oneOffs: true });
           
           // Navigation & UI States
           const [activeTab, setActiveTab] = useState('table'); // 'table' | 'waterfall' | 'admin'
@@ -254,7 +247,6 @@
           const incInputRef = useRef(null);
           const unionInputRef = useRef(null);
           const oneOffInputRef = useRef(null);
-          const mappingInputRef = useRef(null);
           const logoSrc = useMemo(() => getLogoSrc(), []);
 
           // --- Central Engine for reading ALL files (ZIP, XLSX, CSV) ---
@@ -312,7 +304,6 @@
           useEffect(() => {
             const initApp = async () => {
               try {
-                // 1. Load Primary Data
                 const savedData = await loadFromDB('latestUpload');
                 if (savedData && savedData.length > 0) {
                     setRawData(savedData);
@@ -324,45 +315,6 @@
                     if (!loaded) setIsProcessing(false); 
                 }
 
-                // 2. Load Mapping Data
-                let tempMapping = await loadFromDB('mappingData');
-                if (!tempMapping) {
-                    let mapLoaded = await fetchAndProcessFile('mapping.csv', async (parsed) => {
-                        const map = {};
-                        parsed.forEach(r => {
-                            let org = '', fac = '', dept = '';
-                            for (const [k, v] of Object.entries(r)) {
-                                const c = String(k).toLowerCase().trim();
-                                if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
-                                if (c === 'faculty') fac = String(v).trim();
-                                if (c === 'department') dept = String(v).trim();
-                            }
-                            if (org) map[org] = { faculty: fac, dept: dept };
-                        });
-                        tempMapping = map;
-                        await saveToDB('mappingData', map);
-                    });
-                    if(!mapLoaded) {
-                        await fetchAndProcessFile('mapping.xlsx', async (parsed) => {
-                            const map = {};
-                            parsed.forEach(r => {
-                                let org = '', fac = '', dept = '';
-                                for (const [k, v] of Object.entries(r)) {
-                                    const c = String(k).toLowerCase().trim();
-                                    if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
-                                    if (c === 'faculty') fac = String(v).trim();
-                                    if (c === 'department') dept = String(v).trim();
-                                }
-                                if (org) map[org] = { faculty: fac, dept: dept };
-                            });
-                            tempMapping = map;
-                            await saveToDB('mappingData', map);
-                        });
-                    }
-                }
-                if (tempMapping) setMappingData(tempMapping);
-
-                // 3. Load Assumptions
                 let tempAssumptions = { oneOffs: [], increments: [], union: [], startMonthFilter: '' };
                 const savedAdj = await loadFromDB('assumptions');
                 if (savedAdj) {
@@ -454,7 +406,6 @@
               await clearDB();
               setRawData(null);
               setAssumptions({ oneOffs: [], increments: [], union: [], startMonthFilter: '' });
-              setMappingData(null);
               setDataModel(null);
               setDashboardMonth('');
               setActiveTab('table');
@@ -512,17 +463,13 @@
             setIsProcessing(true);
             
             setTimeout(() => {
-              // 1. Scrub Data based on Start Month Filter
-              const filteredRawData = rawData.filter(row => {
-                  const m = parseDateStrToMonthKey(row['Pay Period End']);
-                  return m && (!assumptions.startMonthFilter || m >= assumptions.startMonthFilter);
-              });
-
               const allMonthsSet = new Set();
               const empInfoMap = {}; 
 
-              filteredRawData.forEach(row => {
+              // Fast Scan
+              rawData.forEach(row => {
                 const monthKey = parseDateStrToMonthKey(row['Pay Period End']);
+                if (!monthKey || (assumptions.startMonthFilter && monthKey < assumptions.startMonthFilter)) return;
                 allMonthsSet.add(monthKey);
                 const id = String(row['ID'] || '').trim();
                 if (id) empInfoMap[id] = row; 
@@ -544,70 +491,34 @@
                 currentForecast.setMonth(currentForecast.getMonth() + 1);
               }
 
-              const baseRows = filteredRawData.filter(r => parseDateStrToMonthKey(r['Pay Period End']) === baseMonth);
+              const baseRows = rawData.filter(r => parseDateStrToMonthKey(r['Pay Period End']) === baseMonth);
               const combinedData = [];
 
-              // Add Actuals (Filtered by Scenario)
-              filteredRawData.forEach(row => {
+              // 1. Add Actuals
+              rawData.forEach(row => {
                   const m = parseDateStrToMonthKey(row['Pay Period End']);
-                  let originalAmt = parseAmount(row['Amount']);
-                  let finalAmt = 0;
-                  let includeHC = false;
-                  const group = String(row['Group']).trim();
-                  
-                  if (scenarioFilters.base) {
-                      finalAmt += originalAmt;
-                      includeHC = true;
-                  }
-                  
-                  if (scenarioFilters.union && assumptions.union && assumptions.union.length > 0) {
-                      let multiplier = 1;
-                      assumptions.union.forEach(u => {
-                          if (u.group === group && m >= u.startMonth) multiplier *= (1 + (parseFloat(u.percentage) / 100));
-                      });
-                      const unionInc = (originalAmt * multiplier) - originalAmt;
-                      finalAmt += unionInc;
-                      if (multiplier > 1) includeHC = true;
-                  }
-                  
-                  if (includeHC || finalAmt !== 0) {
-                      combinedData.push({ month: m, amount: finalAmt, id: String(row['ID']).trim(), row });
-                  }
+                  if (!m || (assumptions.startMonthFilter && m < assumptions.startMonthFilter)) return;
+                  combinedData.push({ month: m, amount: parseAmount(row['Amount']), id: String(row['ID']).trim(), row });
               });
 
-              // Generate Forecasts efficiently (Filtered by Scenario)
+              // 2. Generate Forecasts efficiently
               forecastMonths.forEach(fm => {
+                  // Carry Forward & Union
                   baseRows.forEach(row => {
-                      let originalAmt = parseAmount(row['Amount']);
-                      let finalAmt = 0;
-                      let includeHC = false;
+                      let amt = parseAmount(row['Amount']);
                       const group = String(row['Group']).trim();
-                      
-                      if (scenarioFilters.base) {
-                          finalAmt += originalAmt;
-                          includeHC = true;
-                      }
-
-                      if (scenarioFilters.union && assumptions.union && assumptions.union.length > 0) {
+                      if (assumptions.union && assumptions.union.length > 0) {
                           let multiplier = 1;
                           assumptions.union.forEach(u => {
                               if (u.group === group && fm >= u.startMonth) multiplier *= (1 + (parseFloat(u.percentage) / 100));
                           });
-                          const unionInc = (originalAmt * multiplier) - originalAmt;
-                          finalAmt += unionInc;
-                          if (multiplier > 1) includeHC = true;
+                          amt *= multiplier;
                       }
-                      
-                      if (includeHC || finalAmt !== 0) {
-                          combinedData.push({ month: fm, amount: finalAmt, id: String(row['ID']).trim(), row });
-                      }
+                      combinedData.push({ month: fm, amount: amt, id: String(row['ID']).trim(), row });
                   });
-              });
 
-              // Apply Flat Increments & One-Offs across the ENTIRE timeline (Actuals + Forecasts)
-              const allTimelineMonths = [...actualMonths, ...forecastMonths];
-              allTimelineMonths.forEach(fm => {
-                  if (scenarioFilters.increments && assumptions.increments) {
+                  // Flat Increments
+                  if (assumptions.increments) {
                       assumptions.increments.forEach(inc => {
                           if (fm >= inc.startMonth) {
                               const id = String(inc.id).trim();
@@ -616,7 +527,9 @@
                           }
                       });
                   }
-                  if (scenarioFilters.oneOffs && assumptions.oneOffs) {
+
+                  // One-Offs
+                  if (assumptions.oneOffs) {
                       assumptions.oneOffs.forEach(adj => {
                           let adjM = parseDateStrToMonthKey(adj.Month || adj.month);
                           if (adjM === fm) {
@@ -636,6 +549,7 @@
               combinedData.forEach(item => {
                   const { month, amount, id, row } = item;
                   
+                  // Optimize path traversal
                   let currentNode = tree;
                   currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
                   if (id && id !== 'undefined') {
@@ -644,23 +558,13 @@
                   }
 
                   let currentId = 'root';
-                  const orgValue = getOrgValue(row);
-                  const mappedInfo = (mappingData && orgValue && mappingData[orgValue]) ? mappingData[orgValue] : null;
-
                   presetKeys.forEach((key, idx) => {
                     let val = row[key];
-                    
-                    if (key === 'Mapped Faculty') {
-                        val = mappedInfo && mappedInfo.faculty ? mappedInfo.faculty : getFacultyFromOrg(orgValue);
-                    } else if (key === 'Mapped Department') {
-                        val = mappedInfo && mappedInfo.dept ? mappedInfo.dept : (row['Department name'] || row['Department'] || row['Descr_1']);
-                    } else if (!val && key === 'Acct. Description') {
-                        val = row['Account'] || row['__EMPTY'] || row['Descr'];
-                    } else if (!val && key === 'Posn Desc') {
-                        val = row['Position'];
-                    } else if (!val && key === 'Account #') {
-                        val = row['Account Number'] || row['AccountNum'];
-                    }
+                    if (!val && key === 'Department name') val = row['Department'] || row['Descr_1'];
+                    if (!val && key === 'Acct. Description') val = row['Account'] || row['__EMPTY'] || row['Descr'];
+                    if (!val && key === 'Posn Desc') val = row['Position'];
+                    if (!val && key === 'Account #') val = row['Account Number'] || row['AccountNum'];
+                    if (key === 'Mapped Faculty') val = getFacultyFromOrg(getOrgValue(row));
                     
                     val = String(val || `Unknown ${key}`).trim();
                     currentId += `|${val}`;
@@ -669,7 +573,12 @@
                       currentNode.children[val] = { id: currentId, name: val, level: idx + 1, children: {}, amounts: {}, empIds: {} };
                     }
                     currentNode = currentNode.children[val];
-                    addStats(currentNode);
+                    
+                    currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
+                    if (id && id !== 'undefined') {
+                        if (!currentNode.empIds[month]) currentNode.empIds[month] = new Set();
+                        currentNode.empIds[month].add(id);
+                    }
                   });
               });
 
@@ -678,7 +587,7 @@
               setExpandedRows(new Set(['root']));
               setIsProcessing(false);
             }, 50);
-          }, [rawData, assumptions, mappingData, hierarchyIndex, scenarioFilters]);
+          }, [rawData, assumptions, hierarchyIndex]);
 
           const toggleRow = (id) => {
             setExpandedRows(prev => {
@@ -776,48 +685,13 @@
             return combined.size;
           }, [metric, viewMode, displayPeriods, getMetricValue]);
 
-          const renderValueCell = useCallback((node, period, prevPeriod) => {
-            const isVariance = viewMode === 'variance';
-            
-            if (isVariance) {
-              if (!prevPeriod) return <td key={period.key} className="px-3 py-2 text-right text-gray-400">-</td>;
-              const currentVal = getMetricValue(node, period);
-              const prevVal = getMetricValue(node, prevPeriod);
-              const diff = currentVal - prevVal;
-              
-              let colorClass = "text-gray-700";
-              if (diff > 0) colorClass = "text-red-600 font-medium"; 
-              if (diff < 0) colorClass = "text-green-600 font-medium";
-              if (metric === 'amount' && Math.abs(diff) < 0.01) colorClass = "text-gray-400";
-              if (metric === 'headcount' && diff === 0) colorClass = "text-gray-400";
-
-              const formattedDiff = metric === 'amount' ? formatCurrency(diff) : formatCount(diff);
-              const displayDiff = diff > 0 ? `+${formattedDiff}` : formattedDiff;
-
-              return (
-                <td key={period.key} className={`px-3 py-2 text-right ${colorClass} ${period.type === 'forecast' ? 'bg-indigo-50/30' : ''}`}>
-                  {displayDiff}
-                </td>
-              );
-            }
-
-            const val = getMetricValue(node, period);
-            return (
-              <td key={period.key} className={`px-3 py-2 text-right text-gray-800 ${period.type === 'forecast' ? 'bg-indigo-50/50' : ''}`}>
-                {metric === 'amount' ? formatCurrency(val) : formatCount(val)}
-              </td>
-            );
-          }, [metric, viewMode, getMetricValue]);
-
           const flatRows = useMemo(() => {
             if (!dataModel) return [];
             const rows = [];
             const flatten = (node) => {
               rows.push(node);
               if (node.children && Object.keys(node.children).length > 0 && expandedRows.has(node.id)) {
-                Object.values(node.children)
-                  .sort((a, b) => String(a.name).localeCompare(String(b.name)))
-                  .forEach(flatten);
+                Object.values(node.children).sort((a, b) => String(a.name).localeCompare(String(b.name))).forEach(flatten);
               }
             };
             flatten(dataModel.tree);
@@ -965,28 +839,6 @@
               });
           };
 
-          const handleMappingUpload = (e) => {
-              const file = e.target.files[0];
-              if (!file) return;
-              processFile(file, async (parsed) => {
-                  const map = {};
-                  parsed.forEach(r => {
-                      let org = '', fac = '', dept = '';
-                      for (const [k, v] of Object.entries(r)) {
-                          const c = String(k).toLowerCase().trim();
-                          if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
-                          if (c === 'faculty') fac = String(v).trim();
-                          if (c === 'department') dept = String(v).trim();
-                      }
-                      if (org) map[org] = { faculty: fac, dept: dept };
-                  });
-                  setMappingData(map);
-                  await saveToDB('mappingData', map);
-                  alert("Organizational Mapping successfully updated!");
-                  if (mappingInputRef.current) mappingInputRef.current.value = null;
-              });
-          };
-
           if (!dataModel) {
             return (
               <div className="min-h-screen flex flex-col items-center justify-center p-6 font-sans">
@@ -1044,40 +896,6 @@
                      <ExcelIcon /> Append Raw Data
                      <input type="file" accept=".csv, .xlsx, .xls, .zip" className="hidden" onChange={handleFileUpload} />
                   </label>
-
-                  {/* SCENARIO MULTI-SELECT FILTERS */}
-                  <div className="flex items-center bg-gray-50 border border-gray-200 p-1 rounded-lg">
-                      <span className="text-[10px] font-bold text-gray-400 ml-2 mr-2 uppercase tracking-wider">Include:</span>
-                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.base ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-                          <input type="checkbox" className="hidden" checked={scenarioFilters.base} onChange={() => setScenarioFilters(p => ({...p, base: !p.base}))} />
-                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.base ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
-                              {scenarioFilters.base && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                          </div>
-                          Base
-                      </label>
-                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.union ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-                          <input type="checkbox" className="hidden" checked={scenarioFilters.union} onChange={() => setScenarioFilters(p => ({...p, union: !p.union}))} />
-                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.union ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
-                              {scenarioFilters.union && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                          </div>
-                          Union
-                      </label>
-                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.increments ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-                          <input type="checkbox" className="hidden" checked={scenarioFilters.increments} onChange={() => setScenarioFilters(p => ({...p, increments: !p.increments}))} />
-                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.increments ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
-                              {scenarioFilters.increments && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                          </div>
-                          Incr.
-                      </label>
-                      <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${scenarioFilters.oneOffs ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-                          <input type="checkbox" className="hidden" checked={scenarioFilters.oneOffs} onChange={() => setScenarioFilters(p => ({...p, oneOffs: !p.oneOffs}))} />
-                          <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${scenarioFilters.oneOffs ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
-                              {scenarioFilters.oneOffs && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                          </div>
-                          One-Offs
-                      </label>
-                  </div>
-
                   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 p-1 rounded-lg">
                      <div className="relative">
                         <select className="appearance-none bg-white border border-gray-300 py-1.5 pl-3 pr-8 rounded text-xs font-medium focus:border-blue-500" value={hierarchyIndex} onChange={(e) => setHierarchyIndex(parseInt(e.target.value, 10))} disabled={isProcessing}>
@@ -1236,85 +1054,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                {(() => {
-                                    const wfBase = displayPeriods[waterfallBaseIndex === -1 ? (displayPeriods.length >= 2 ? displayPeriods.length - 2 : 0) : waterfallBaseIndex];
-                                    const wfComp = displayPeriods[waterfallCompareIndex === -1 ? displayPeriods.length - 1 : waterfallCompareIndex];
-                                    const baseTotal = getMetricValue(dataModel.tree, wfBase);
-                                    const compTotal = getMetricValue(dataModel.tree, wfComp);
-
-                                    let deltas = [];
-                                    Object.values(dataModel.tree.children).forEach(child => {
-                                        const diff = getMetricValue(child, wfComp) - getMetricValue(child, wfBase);
-                                        if (Math.abs(diff) > 0.01) deltas.push({ name: child.name, value: diff });
-                                    });
-                                    deltas.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
-                                    
-                                    if (deltas.length > 7) {
-                                        const top = deltas.slice(0, 7);
-                                        const otherVal = deltas.slice(7).reduce((sum, d) => sum + d.value, 0);
-                                        if (Math.abs(otherVal) > 0.01) top.push({ name: 'Other Groupings', value: otherVal });
-                                        deltas = top;
-                                    }
-
-                                    const steps = [{ label: wfBase.label, value: baseTotal, isTotal: true, startY: 0, endY: baseTotal }];
-                                    let runningTotal = baseTotal;
-                                    deltas.forEach(d => {
-                                        steps.push({ label: d.name, value: d.value, isTotal: false, startY: runningTotal, endY: runningTotal + d.value });
-                                        runningTotal += d.value;
-                                    });
-                                    steps.push({ label: wfComp.label, value: compTotal, isTotal: true, startY: 0, endY: compTotal });
-
-                                    const maxVal = Math.max(...steps.map(d => Math.max(d.startY, d.endY)));
-                                    const minVal = Math.min(0, ...steps.map(d => Math.min(d.startY, d.endY)));
-                                    const padding = (maxVal - minVal) * 0.1 || 10;
-                                    const yMax = maxVal + padding;
-                                    const yMin = minVal - padding;
-                                    const yRange = yMax - yMin;
-
-                                    const width = 1000, chartHeight = 400, labelSpace = 120; 
-                                    const getY = (val) => chartHeight - ((val - yMin) / yRange) * chartHeight;
-                                    const barWidth = width / steps.length;
-                                    const barPadding = barWidth * 0.15;
-
-                                    return (
-                                        <div className="w-full overflow-x-auto pb-4">
-                                            <div className="min-w-[800px]">
-                                                <svg viewBox={`0 0 ${width} ${chartHeight + labelSpace}`} className="w-full h-auto text-xs font-sans select-none">
-                                                    {[0, 0.25, 0.5, 0.75, 1].map(pct => {
-                                                        const val = yMin + (yRange * pct);
-                                                        const y = getY(val);
-                                                        return (
-                                                            <g key={`grid-${pct}`}>
-                                                                <line x1={0} y1={y} x2={width} y2={y} stroke="#e5e7eb" strokeDasharray="4 4" />
-                                                                <text x={0} y={y - 4} fill="#9ca3af" fontSize="10">{metric === 'amount' ? formatCurrency(val) : formatCount(val)}</text>
-                                                            </g>
-                                                        )
-                                                    })}
-                                                    {yMin < 0 && yMax > 0 && <line x1={0} y1={getY(0)} x2={width} y2={getY(0)} stroke="#6b7280" strokeWidth="1" />}
-                                                    {steps.map((d, i) => {
-                                                        const x = i * barWidth + barPadding / 2;
-                                                        const w = barWidth - barPadding;
-                                                        const y = Math.min(getY(d.startY), getY(d.endY));
-                                                        const h = Math.max(2, Math.abs(getY(d.startY) - getY(d.endY)));
-                                                        let color = d.isTotal ? "#1e3a8a" : (d.value > 0 ? "#dc2626" : "#16a34a");
-                                                        const displayVal = metric === 'amount' ? formatCurrency(d.value) : formatCount(d.value);
-                                                        const labelStr = d.value > 0 && !d.isTotal ? '+' + displayVal : displayVal;
-                                                        const shortLabel = d.label.length > 25 ? d.label.substring(0, 23) + '...' : d.label;
-                                                        return (
-                                                            <g key={i} className="group cursor-default">
-                                                                <title>{d.label}&#10;{d.isTotal ? 'Balance' : 'Variance'}: {displayVal}</title>
-                                                                {i > 0 && <line x1={x - barPadding} y1={getY(steps[i-1].endY)} x2={x} y2={getY(steps[i-1].endY)} stroke="#9ca3af" strokeDasharray="3 3" strokeWidth="1" />}
-                                                                <rect x={x} y={y} width={w} height={h} fill={color} rx="2" className="transition-opacity group-hover:opacity-80" />
-                                                                <text x={x + w/2} y={d.value >= 0 ? y - 8 : y + h + 16} textAnchor="middle" fill={color} fontWeight="bold" fontSize="11">{labelStr}</text>
-                                                                <text x={x + w/2} y={chartHeight + 15} textAnchor="end" fill="#4b5563" fontSize="11" fontWeight={d.isTotal ? "bold" : "normal"} transform={`rotate(-35, ${x + w/2}, ${chartHeight + 15})`}>{shortLabel}</text>
-                                                            </g>
-                                                        )
-                                                    })}
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    )
-                                })()}
+                                {renderWaterfallSVG()}
                             </div>
                         )}
                     </div>
@@ -1328,8 +1068,7 @@
                             <button onClick={()=>setActiveAdminTab('union')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='union'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Union Increases</button>
                             <button onClick={()=>setActiveAdminTab('increments')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='increments'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Flat Increments</button>
                             <button onClick={()=>setActiveAdminTab('oneoffs')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='oneoffs'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>One-Off Payments</button>
-                            <button onClick={()=>setActiveAdminTab('mapping')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='mapping'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Organizational Mapping</button>
-                            <button onClick={()=>setActiveAdminTab('active')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 mt-4 ${activeAdminTab==='active'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Manage Active Rules</button>
+                            <button onClick={()=>setActiveAdminTab('active')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='active'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Manage Active Rules</button>
                             <button onClick={()=>setActiveAdminTab('filters')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='filters'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Data Filters</button>
                             <button onClick={()=>setActiveAdminTab('glossary')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mt-auto border border-gray-300 ${activeAdminTab==='glossary'?'bg-gray-200 text-gray-800':'text-gray-600 hover:bg-gray-100'}`}>Glossary & Help</button>
                         </div>
@@ -1353,14 +1092,15 @@
                                     <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">Or Add Single Rule Manually</h3>
                                     <div className="grid grid-cols-3 gap-4 mb-4">
                                         <div><label className="block text-xs font-bold mb-1 text-gray-500">Group</label>
-                                        <select value={assumptions.tempUnionGroup||''} onChange={e=>setAssumptions({...assumptions, tempUnionGroup:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{uniqueGroups.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
-                                        <div><label className="block text-xs font-bold mb-1 text-gray-500">Percentage (%)</label><input type="number" value={assumptions.tempUnionPct||''} onChange={e=>setAssumptions({...assumptions, tempUnionPct:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50" /></div>
+                                        <select value={unionGroup} onChange={e=>setUnionGroup(e.target.value)} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{uniqueGroups.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+                                        <div><label className="block text-xs font-bold mb-1 text-gray-500">Percentage (%)</label><input type="number" value={unionPct} onChange={e=>setUnionPct(e.target.value)} className="w-full border rounded p-2 text-sm bg-gray-50" /></div>
                                         <div><label className="block text-xs font-bold mb-1 text-gray-500">Start Month</label>
-                                        <select value={assumptions.tempUnionMonth||''} onChange={e=>setAssumptions({...assumptions, tempUnionMonth:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{forecastMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}</select></div>
+                                        <select value={unionMonth} onChange={e=>setUnionMonth(e.target.value)} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{forecastMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}</select></div>
                                     </div>
                                     <button onClick={() => {
-                                        if(!assumptions.tempUnionGroup || !assumptions.tempUnionPct || !assumptions.tempUnionMonth) return alert("Fill all fields.");
-                                        saveAssumptionsState({ ...assumptions, tempUnionPct: '', union: [...(assumptions.union||[]), { group: assumptions.tempUnionGroup, percentage: parseFloat(assumptions.tempUnionPct), startMonth: assumptions.tempUnionMonth, id: Date.now() }] });
+                                        if(!unionGroup || !unionPct || !unionMonth) return alert("Fill all fields.");
+                                        saveAssumptionsState({ ...assumptions, union: [...(assumptions.union||[]), { group: unionGroup, percentage: parseFloat(unionPct), startMonth: unionMonth, id: Date.now() }] });
+                                        setUnionPct('');
                                     }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">Apply Rule</button>
                                 </div>
                             )}
@@ -1393,22 +1133,6 @@
                                             <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleOneOffUpload} ref={oneOffInputRef} />
                                         </label>
                                         <button onClick={()=>downloadTemplate('oneoffs')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeAdminTab === 'mapping' && (
-                                <div className="max-w-2xl">
-                                    <h2 className="text-2xl font-bold mb-2">Organizational Mapping</h2>
-                                    <p className="text-gray-600 mb-8">Upload an Excel/CSV file to map Org numbers to distinct Faculties and Departments. Your file should have columns for <b>Org</b>, <b>Faculty</b>, and <b>Department</b>. If omitted, the engine uses the hardcoded UWI fallback logic.</p>
-                                    
-                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-                                        <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
-                                            <UploadIcon />
-                                            <span className="text-indigo-600 font-medium text-sm">Select Mapping File</span>
-                                            <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleMappingUpload} ref={mappingInputRef} />
-                                        </label>
-                                        <button onClick={()=>downloadTemplate('mapping')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
                                     </div>
                                 </div>
                             )}
