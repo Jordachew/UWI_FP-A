@@ -333,11 +333,13 @@
           
           const [dashboardMonth, setDashboardMonth] = useState('');
           
+          // Union Drafts state for the UI list
+          const [unionDrafts, setUnionDrafts] = useState({});
+          
           // Refs
           const fileInputRef = useRef(null);
           const incInputRef = useRef(null);
           const newHireInputRef = useRef(null);
-          const unionInputRef = useRef(null);
           const oneOffInputRef = useRef(null);
           const mappingInputRef = useRef(null);
           
@@ -587,6 +589,53 @@
       });
       return Array.from(groups).sort();
   }, [rawData]);
+
+  useEffect(() => {
+      const initialDrafts = {};
+      uniqueGroups.forEach(g => {
+          initialDrafts[g] = { pct: 5, startMonth: '2026-08' };
+      });
+      setUnionDrafts(initialDrafts);
+  }, [uniqueGroups]);
+
+  const handleUnionDraftChange = (group, field, value) => {
+      setUnionDrafts(prev => ({
+          ...prev,
+          [group]: {
+              ...prev[group],
+              [field]: value
+          }
+      }));
+  };
+
+  const handleApplySingleUnion = (group) => {
+      const draft = unionDrafts[group];
+      if (!draft || draft.pct === '' || !draft.startMonth) return alert("Fill all fields for " + group);
+      const newRule = { group, percentage: parseFloat(draft.pct), startMonth: draft.startMonth, id: Date.now() + Math.random() };
+      saveAssumptionsState({
+          ...assumptions,
+          union: [...(assumptions.union || []), newRule]
+      });
+      alert(`Applied ${draft.pct}% increase to ${group} starting ${formatMonthLabel(draft.startMonth)}`);
+  };
+
+  const handleApplyAllUnionDrafts = () => {
+      const newRules = [];
+      uniqueGroups.forEach(g => {
+          const draft = unionDrafts[g];
+          if (draft && draft.pct !== '' && draft.startMonth) {
+              newRules.push({
+                  group: g,
+                  percentage: parseFloat(draft.pct),
+                  startMonth: draft.startMonth,
+                  id: Date.now() + Math.random()
+              });
+          }
+      });
+      if (newRules.length === 0) return alert("No valid rules to apply.");
+      saveAssumptionsState({ ...assumptions, union: [...(assumptions.union || []), ...newRules] });
+      alert(`Applied ${newRules.length} group increases!`);
+  };
 
   const rawMonthsList = useMemo(() => {
       if (!rawData) return [];
@@ -1179,28 +1228,6 @@
     setIsProcessing(false);
   };
 
-  const handleUnionUpload = (e) => {
-      const file = e.target.files[0];
-      if (!file) return; 
-      processFile(file, async (parsed) => {
-          const newRules = parsed.map(r => {
-              let group = '', pct = 0, sm = '';
-              for (const [k, v] of Object.entries(r)) {
-                  const c = String(k).toLowerCase().trim();
-                  if (c==='group' || c==='union group') group = String(v).trim();
-                  if (c==='percentage' || c==='pct' || c==='%') pct = parseFloat(v);
-                  if (c==='start month' || c==='month') sm = parseDateStrToMonthKey(v) || String(v).trim();
-              }
-              return { group, percentage: pct, startMonth: sm, id: Date.now() + Math.random() };
-          }).filter(r => r.group && !isNaN(r.percentage) && r.startMonth);
-
-          if (newRules.length === 0) return alert("Could not find valid columns.");
-          saveAssumptionsState({ ...assumptions, union: [...(assumptions.union||[]), ...newRules] });
-          if (unionInputRef.current) unionInputRef.current.value = null;
-          alert(`Added ${newRules.length} Union increases.`);
-      });
-  };
-
   const handleIncrementUpload = (e) => {
       const file = e.target.files[0];
       if (!file) return; 
@@ -1541,39 +1568,69 @@
                 
                 <div className="flex-1 p-8 overflow-y-auto bg-white">
                     {activeAdminTab === 'union' && (
-                        <div className="max-w-2xl">
-                            <h2 className="text-2xl font-bold mb-2">Union & Group Increases</h2>
-                            <p className="text-gray-600 mb-8">Upload a CSV file or manually enter a percentage increase to apply to a specific group starting on a target month.</p>
-                            
-                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
-                                <h3 className="font-bold text-gray-800 mb-4">Bulk Upload via CSV/Excel</h3>
-                                <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
-                                    <UploadIcon />
-                                    <span className="text-indigo-600 font-medium text-sm">Select File</span>
-                                    <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleUnionUpload} ref={unionInputRef} />
-                                </label>
-                                <button onClick={()=>downloadTemplate('union')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
-                            </div>
+                        <div className="max-w-4xl">
+                            <h2 className="text-2xl font-bold mb-2">Group Salary Increases</h2>
+                            <p className="text-gray-600 mb-8">Set standard percentage increases for each group. Defaults are set to 5% starting Aug 2026.</p>
 
-                            <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">Or Add Single Rule Manually</h3>
-                            <div className="grid grid-cols-3 gap-4 mb-4">
-                                <div><label className="block text-xs font-bold mb-1 text-gray-500">Group</label>
-                                <select value={assumptions.tempUnionGroup||''} onChange={e=>setAssumptions({...assumptions, tempUnionGroup:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{uniqueGroups.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
-                                <div><label className="block text-xs font-bold mb-1 text-gray-500">Percentage (%)</label><input type="number" value={assumptions.tempUnionPct||''} onChange={e=>setAssumptions({...assumptions, tempUnionPct:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50" /></div>
-                                <div><label className="block text-xs font-bold mb-1 text-gray-500">Start Month</label>
-                                <select value={assumptions.tempUnionMonth||''} onChange={e=>setAssumptions({...assumptions, tempUnionMonth:e.target.value})} className="w-full border rounded p-2 text-sm bg-gray-50"><option value="">-- Select --</option>{forecastMonthsList.map(m => <option key={m} value={m}>{formatMonthLabel(m)}</option>)}</select></div>
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-4 py-3 font-semibold text-gray-700">Group Name</th>
+                                            <th className="px-4 py-3 font-semibold text-gray-700 w-32">Increase (%)</th>
+                                            <th className="px-4 py-3 font-semibold text-gray-700 w-48">Start Month</th>
+                                            <th className="px-4 py-3 font-semibold text-gray-700 w-24">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {uniqueGroups.map(g => (
+                                            <tr key={g} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 font-medium text-gray-800">{g}</td>
+                                                <td className="px-4 py-3">
+                                                    <input type="number" className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white" value={unionDrafts[g]?.pct ?? 5} onChange={e => handleUnionDraftChange(g, 'pct', e.target.value)} />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <select className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white" value={unionDrafts[g]?.startMonth ?? '2026-08'} onChange={e => handleUnionDraftChange(g, 'startMonth', e.target.value)}>
+                                                        <option value="">-- Select --</option>
+                                                        <option value="2026-08">Aug-26</option>
+                                                        {forecastMonthsList.map(m => m !== '2026-08' && <option key={m} value={m}>{formatMonthLabel(m)}</option>)}
+                                                    </select>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <button 
+                                                        onClick={() => handleApplySingleUnion(g)}
+                                                        className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-sm border border-blue-200"
+                                                    >
+                                                        Apply
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {uniqueGroups.length === 0 && (
+                                    <div className="p-8 text-center text-gray-500">No groups found in the raw data. Please upload raw data first.</div>
+                                )}
                             </div>
-                            <button onClick={() => {
-                                if(!assumptions.tempUnionGroup || !assumptions.tempUnionPct || !assumptions.tempUnionMonth) return alert("Fill all fields.");
-                                saveAssumptionsState({ ...assumptions, tempUnionPct: '', union: [...(assumptions.union||[]), { group: assumptions.tempUnionGroup, percentage: parseFloat(assumptions.tempUnionPct), startMonth: assumptions.tempUnionMonth, id: Date.now() }] });
-                            }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">Apply Rule</button>
+                            
+                            {uniqueGroups.length > 0 && (
+                                <div className="mt-6 flex justify-end">
+                                    <button onClick={handleApplyAllUnionDrafts} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-sm transition-colors">
+                                        Apply All Increases
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {activeAdminTab === 'increments' && (
                         <div className="max-w-2xl">
                             <h2 className="text-2xl font-bold mb-2">Flat Increments</h2>
-                            <p className="text-gray-600 mb-8">Upload a file linking Employee IDs to flat dollar amount increases that compound forever starting from the designated month.</p>
+                            <p className="text-gray-600 mb-8">
+                                Upload a file linking Employee IDs to flat dollar amount increases that compound forever starting from the designated month. 
+                                <br/><br/>
+                                <strong className="text-indigo-600">GitHub Auto-Sync:</strong> The engine automatically looks for and loads <code>incremental.csv</code> or <code>incremental.xlsx</code> from your GitHub repository on startup. You can manually upload overrides below.
+                            </p>
                             
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
                                 <label className="block text-xs font-bold text-gray-700 mb-2">Default Start Month (Optional)</label>
