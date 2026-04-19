@@ -91,35 +91,39 @@
           }));
         }
 
-        // Decode UWI fiscal period string into a calendar month key (YYYY-MM)
-        // Format: "PP/FY" e.g. "1/8/2025" = FY2025 PP8 = Mar 2025
-        // FY starts Aug, so PP1=Aug(FY-1), PP2=Sep(FY-1)..PP5=Dec(FY-1), PP6=Jan(FY)..PP12=Jul(FY)
+        // Parse UWI pay period date: format is DD/MM/YYYY (e.g. "1/8/2025" = 1st Aug 2025)
+        // Returns YYYY-MM string
         function fiscalPeriodToCalendarMonth(rawVal) {
           if (!rawVal) return null;
           const str = String(rawVal).trim();
-          // Pattern: FY/1/PP e.g. "1/8/2025" or "2025/1/8"
-          const parts = str.split('/');
-          if (parts.length === 3) {
-            let fy, pp;
-            // Try "PP/1/FY" format first (e.g. "1/8/2025" -> pp=8, fy=2025? No...)
-            // From the screenshot: "1/8/2025" where column header is "pay_per"
-            // Given FY2025 PP1=Aug2024, the value "1/8/2025" likely means FY=2025, PP=8
-            // So format appears to be: separator/PP/FY or FY/separator/PP
-            // Looking at data: 2024-01-08 stored = FY2024 PP8, original was "1/8/2024"
-            // So format is: 1/PP/FY
-            const p0 = parseInt(parts[0], 10);
-            const p1 = parseInt(parts[1], 10);
-            const p2 = parseInt(parts[2], 10);
-            if (!isNaN(p2) && p2 > 2000) { fy = p2; pp = p1; }       // 1/PP/FY
-            else if (!isNaN(p0) && p0 > 2000) { fy = p0; pp = p2; }  // FY/1/PP
-            else return null;
-            if (pp < 1 || pp > 12) return null;
-            // PP1=Aug(FY-1), so base month index = (pp - 1) + 7 (July=7) within FY-1 year
-            const baseDate = new Date(fy - 1, 7, 1); // Aug of FY-1
-            baseDate.setMonth(baseDate.getMonth() + (pp - 1));
-            return `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}`;
+
+          // Handle DD/MM/YYYY or D/M/YYYY (UWI source format)
+          const slashParts = str.split('/');
+          if (slashParts.length === 3) {
+            const day  = parseInt(slashParts[0], 10);
+            const mon  = parseInt(slashParts[1], 10);
+            const year = parseInt(slashParts[2], 10);
+            if (!isNaN(day) && !isNaN(mon) && !isNaN(year) && mon >= 1 && mon <= 12 && year > 2000) {
+              return `${year}-${String(mon).padStart(2, '0')}`;
+            }
           }
-          // Fall back to normal date parser
+
+          // Handle Excel serial number
+          if (typeof rawVal === 'number' || (!isNaN(rawVal) && !str.includes('/') && !str.includes('-'))) {
+            const serial = parseFloat(rawVal);
+            const d = new Date(Date.UTC(1970, 0, Math.round(serial) - 25569 + 1));
+            return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+          }
+
+          // Handle YYYY-MM-DD (already stored ISO)
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            // Was stored as YYYY-01-MM (Postgres misread DD/MM/YYYY as MM/DD/YYYY)
+            // So actual month = DAY part, actual year = YEAR part
+            const parts = str.split('-');
+            return `${parts[0]}-${parts[2]}`;
+          }
+
+          // Fall back to standard parser
           return parseDateStrToMonthKey(rawVal);
         }
 
@@ -285,7 +289,25 @@
         // --- Iron-Clad Date Parser ---
         function parseDateStrToMonthKey(dateStr) {
           if (!dateStr) return null;
-          
+
+          // Handle DD/MM/YYYY or D/M/YYYY (UWI source format e.g. "1/8/2025" = Aug 2025)
+          if (typeof dateStr === 'string' && dateStr.includes('/')) {
+            const parts = dateStr.trim().split('/');
+            if (parts.length === 3) {
+              const d = parseInt(parts[0], 10);
+              const m = parseInt(parts[1], 10);
+              const y = parseInt(parts[2], 10);
+              if (!isNaN(d) && !isNaN(m) && !isNaN(y) && m >= 1 && m <= 12 && y > 2000) {
+                return `${y}-${String(m).padStart(2, '0')}`;
+              }
+            }
+          }
+
+          // Handle YYYY-MM (already a month key)
+          if (typeof dateStr === 'string' && /^\d{4}-\d{2}$/.test(dateStr.trim())) {
+            return dateStr.trim();
+          }
+
           let y, m;
           
           if (typeof dateStr === 'number' || (!isNaN(dateStr) && !String(dateStr).includes('/') && !String(dateStr).includes('-') && !/[a-zA-Z]/.test(String(dateStr)))) {
