@@ -124,10 +124,30 @@
 
         // --- Payroll Data ---
         async function loadPayrollFromDB() {
-          // Returns only 26 rows (one per month), each with a JSON array of employees
-          // This completely bypasses PostgREST's row limit — 26 rows is nothing
-          const { data, error } = await sb.rpc('get_payroll_by_month');
-          if (error) { console.error('loadPayroll error', error); return null; }
+          // Call the RPC via raw fetch — bypasses the Supabase JS client's
+          // PostgREST row limit which cannot be overridden any other way.
+          // We request all 26 months, each containing a JSON array of employees.
+          const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/rpc/get_payroll_by_month`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type':  'application/json',
+                'apikey':         SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Prefer':        'return=representation',
+              },
+              body: JSON.stringify({}),
+            }
+          );
+
+          if (!res.ok) {
+            const err = await res.text();
+            console.error('loadPayroll fetch error', res.status, err);
+            return null;
+          }
+
+          const data = await res.json();
           if (!data || data.length === 0) return null;
 
           // Unpack: expand each month's employee array into flat rows
@@ -150,6 +170,7 @@
               });
             });
           });
+          console.log(`Loaded ${rows.length} rows across ${data.length} months`);
           return rows;
         }
 
@@ -2065,65 +2086,68 @@
             <div className="min-h-screen p-4 md:p-8 font-sans text-sm flex flex-col">
               {confirmModal && <ConfirmModal {...confirmModal} />}
               
-              <div className="bg-white rounded-t-xl shadow-sm border-b border-gray-200 p-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 relative">
-                <div className="absolute top-4 right-6 flex items-center gap-4">
-                  <button onClick={() => setActiveTab('admin')} className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm hover:bg-indigo-100 transition-colors">
-                    <SettingsIcon /> Settings & Rules
-                  </button>
-                  <button onClick={handleClearData} className="text-xs text-red-600 hover:text-red-800 hover:underline font-medium">Clear DB</button>
-                </div>
-
-                <div className="flex items-center gap-4 mt-6 xl:mt-0">
-                  <img src={logoSrc} alt="UWI Logo" className="h-16 w-auto object-contain hidden sm:block" onError={(e) => e.target.style.display='none'} />
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">UWI Cost & Headcount Report</h1>
-                    <p className="text-gray-500 mt-1 flex items-center">
-                      {`Actuals through ${formatMonthLabel(dataModel.baseMonth)}`} {scenarioFilters.forecasts && '• Projected through Jul-27'}
-                      {((assumptions.union?.length||0) + (assumptions.increments?.length||0) + (assumptions.oneOffs?.length||0) + (assumptions.newHires?.length||0) > 0 || assumptions.startMonthFilter) && (
-                         <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800">Custom Rules Active</span>
-                      )}
-                    </p>
+              <div className="bg-white rounded-t-xl shadow-sm border-b border-gray-200 px-6 py-4 flex flex-col gap-3">
+                {/* Row 1: Logo + Title + Action buttons */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <img src={logoSrc} alt="UWI Logo" className="h-12 w-auto object-contain hidden sm:block" onError={(e) => e.target.style.display='none'} />
+                    <div>
+                      <h1 className="text-xl font-bold text-gray-900">UWI Cost & Headcount Report</h1>
+                      <p className="text-gray-400 text-xs mt-0.5">
+                        Actuals through {formatMonthLabel(dataModel.baseMonth)}
+                        {scenarioFilters.forecasts && ' · Projected through Jul-27'}
+                        {((assumptions.union?.length||0)+(assumptions.increments?.length||0)+(assumptions.oneOffs?.length||0)+(assumptions.newHires?.length||0) > 0 || assumptions.startMonthFilter) && (
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-100 text-indigo-700">Rules Active</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label className="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-medium text-xs cursor-pointer flex items-center gap-1">
+                      <ExcelIcon /> Upload Data
+                      <input type="file" accept=".csv, .xlsx, .xls, .zip" className="hidden" onChange={handleFileUpload} />
+                    </label>
+                    <button onClick={() => setActiveTab('admin')} className="text-xs text-indigo-600 font-bold flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100">
+                      <SettingsIcon /> Settings
+                    </button>
+                    <button onClick={handleClearData} className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1.5">Clear DB</button>
                   </div>
                 </div>
 
+                {/* Row 2: Filters + Dropdowns + Metric toggle */}
                 {activeTab !== 'admin' && (
-                <div className="flex flex-wrap items-center gap-4 mt-2 xl:mt-0">
-                  <label className="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-medium text-xs shadow-sm cursor-pointer transition-colors flex items-center gap-1">
-                     <ExcelIcon /> Append Raw Data
-                     <input type="file" accept=".csv, .xlsx, .xls, .zip" className="hidden" onChange={handleFileUpload} />
-                  </label>
-
-                  <div className="flex items-center bg-gray-50 border border-gray-200 p-1 rounded-lg">
-                      <span className="text-[10px] font-bold text-gray-400 ml-2 mr-2 uppercase tracking-wider">Include:</span>
-                      <FilterCheckbox label="Base" checked={scenarioFilters.base} onChange={() => setScenarioFilters(p => ({...p, base: !p.base}))} />
-                      <FilterCheckbox label="Union" checked={scenarioFilters.union} onChange={() => setScenarioFilters(p => ({...p, union: !p.union}))} />
-                      <FilterCheckbox label="Incr." checked={scenarioFilters.increments} onChange={() => setScenarioFilters(p => ({...p, increments: !p.increments}))} />
-                      <FilterCheckbox label="Hires" checked={scenarioFilters.newHires} onChange={() => setScenarioFilters(p => ({...p, newHires: !p.newHires}))} />
-                      <FilterCheckbox label="One-Offs" checked={scenarioFilters.oneOffs} onChange={() => setScenarioFilters(p => ({...p, oneOffs: !p.oneOffs}))} />
-                      <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <FilterCheckbox label="Future Projections" checked={scenarioFilters.forecasts} onChange={() => setScenarioFilters(p => ({...p, forecasts: !p.forecasts}))} isIndigo={true} />
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Scenario filters */}
+                  <div className="flex items-center bg-gray-50 border border-gray-200 p-1 rounded-lg flex-shrink-0">
+                    <span className="text-[10px] font-bold text-gray-400 ml-1 mr-1 uppercase">Show:</span>
+                    <FilterCheckbox label="Base" checked={scenarioFilters.base} onChange={() => setScenarioFilters(p => ({...p, base: !p.base}))} />
+                    <FilterCheckbox label="Union" checked={scenarioFilters.union} onChange={() => setScenarioFilters(p => ({...p, union: !p.union}))} />
+                    <FilterCheckbox label="Incr." checked={scenarioFilters.increments} onChange={() => setScenarioFilters(p => ({...p, increments: !p.increments}))} />
+                    <FilterCheckbox label="Hires" checked={scenarioFilters.newHires} onChange={() => setScenarioFilters(p => ({...p, newHires: !p.newHires}))} />
+                    <FilterCheckbox label="1-Offs" checked={scenarioFilters.oneOffs} onChange={() => setScenarioFilters(p => ({...p, oneOffs: !p.oneOffs}))} />
+                    <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                    <FilterCheckbox label="Forecasts" checked={scenarioFilters.forecasts} onChange={() => setScenarioFilters(p => ({...p, forecasts: !p.forecasts}))} isIndigo={true} />
                   </div>
 
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 p-1 rounded-lg">
-                     <div className="relative">
-                        <select className="appearance-none bg-white border border-gray-300 py-1.5 pl-3 pr-8 rounded text-xs font-medium focus:border-blue-500" value={hierarchyIndex} onChange={(e) => setHierarchyIndex(parseInt(e.target.value, 10))} disabled={isProcessing}>
-                          {HIERARCHY_PRESETS.map((p, i) => <option key={i} value={i}>Hierarchy: {p.label}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-2 text-gray-400" />
-                     </div>
-                     <div className="relative">
-                        <select className="appearance-none bg-white border border-gray-300 py-1.5 pl-3 pr-8 rounded text-xs font-medium focus:border-blue-500" value={timeGrouping} onChange={(e) => setTimeGrouping(e.target.value)} disabled={isProcessing}>
-                          <option value="month">Group: Monthly</option>
-                          <option value="quarter">Group: Quarterly (FY)</option>
-                          <option value="annual">Group: Annually (FY)</option>
-                          <option value="ytd">Group: YTD</option>
-                        </select>
-                        <ChevronDown className="absolute right-2 top-2 text-gray-400" />
-                     </div>
-                  </div>
+                  {/* Hierarchy dropdown */}
+                  <select className="bg-white border border-gray-300 py-1.5 pl-3 pr-2 rounded text-xs font-medium focus:border-blue-500 max-w-[220px]"
+                    value={hierarchyIndex} onChange={(e) => setHierarchyIndex(parseInt(e.target.value, 10))} disabled={isProcessing}>
+                    {HIERARCHY_PRESETS.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
+                  </select>
+
+                  {/* Grouping dropdown */}
+                  <select className="bg-white border border-gray-300 py-1.5 pl-3 pr-2 rounded text-xs font-medium focus:border-blue-500"
+                    value={timeGrouping} onChange={(e) => setTimeGrouping(e.target.value)} disabled={isProcessing}>
+                    <option value="month">Monthly</option>
+                    <option value="quarter">Quarterly (FY)</option>
+                    <option value="annual">Annual (FY)</option>
+                    <option value="ytd">YTD</option>
+                  </select>
+
+                  {/* Metric toggle */}
                   <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-                    <button onClick={() => setMetric('amount')} className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'amount' ? 'bg-white shadow text-blue-700' : 'text-gray-600'}`}>$ Amount</button>
-                    <button onClick={() => setMetric('headcount')} className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${metric === 'headcount' ? 'bg-white shadow text-blue-700' : 'text-gray-600'}`}>Headcount</button>
+                    <button onClick={() => setMetric('amount')} className={`px-3 py-1 rounded-md font-medium text-xs transition-colors ${metric==='amount'?'bg-white shadow text-blue-700':'text-gray-500'}`}>$ Amount</button>
+                    <button onClick={() => setMetric('headcount')} className={`px-3 py-1 rounded-md font-medium text-xs transition-colors ${metric==='headcount'?'bg-white shadow text-blue-700':'text-gray-500'}`}>Headcount</button>
                   </div>
                 </div>
                 )}
