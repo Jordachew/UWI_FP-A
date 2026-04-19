@@ -70,22 +70,50 @@
 
         // --- Payroll Data ---
         async function loadPayrollFromDB() {
-          const { data, error } = await sb.from('payroll_data').select('raw_row, pay_period_end').order('pay_period_end', { ascending: true });
+          // Reconstruct rows from structured columns - raw_row is not used
+          const { data, error } = await sb
+            .from('payroll_data')
+            .select('pay_period_end, employee_id, employee_name, amount, group_name, org_number, account_number, account_desc, position_desc, department_name, sal_plan')
+            .order('pay_period_end', { ascending: true });
           if (error) { console.error('loadPayroll error', error); return null; }
-          // Reconstruct raw rows with pay period end merged in
-          return data.map(r => ({ ...r.raw_row, 'Pay Period End': r.pay_period_end }));
+          return data.map(r => ({
+            'Pay Period End':    r.pay_period_end,
+            'ID':                r.employee_id,
+            'Name':              r.employee_name,
+            'Amount':            r.amount != null ? parseFloat(r.amount) : 0,
+            'Group':             r.group_name,
+            'Org. #':            r.org_number,
+            'Account #':         r.account_number,
+            'Acct. Description': r.account_desc,
+            'Posn Desc':         r.position_desc,
+            'Department name':   r.department_name,
+            'Sal Plan':          r.sal_plan,
+          }));
         }
 
         async function savePayrollToDB(parsedRows, filename) {
-          // Map parsed rows to table columns; keep full row in raw_row for safety
           const records = parsedRows.map(row => {
             const orgKey = Object.keys(row).find(k => {
               const c = String(k).replace(/\s+/g, '').toLowerCase();
               return c === 'org.#' || c === 'org#' || c === 'org' || c === 'orgnum';
             });
-            const payPeriod = parseDateStrToMonthKey(row['Pay Period End']);
-            // Convert month key back to a proper date (first of month) for the date column
-            const payDate = payPeriod ? `${payPeriod}-01` : null;
+            // Store actual pay period end date from source
+            const rawDate = row['Pay Period End'];
+            let payDate = null;
+            if (rawDate) {
+              if (typeof rawDate === 'number') {
+                const d = new Date(Date.UTC(1970, 0, Math.round(rawDate) - 25569 + 1));
+                payDate = d.toISOString().split('T')[0];
+              } else {
+                const d = new Date(rawDate);
+                if (!isNaN(d.getTime())) {
+                  payDate = d.toISOString().split('T')[0];
+                } else {
+                  const mk = parseDateStrToMonthKey(rawDate);
+                  payDate = mk ? `${mk}-01` : null;
+                }
+              }
+            }
             return {
               pay_period_end:  payDate,
               employee_id:     String(row['ID'] || '').trim() || null,
@@ -98,11 +126,11 @@
               position_desc:   String(row['Posn Desc'] || row['Position'] || '').trim() || null,
               department_name: String(row['Department name'] || row['Department'] || row['Descr_1'] || '').trim() || null,
               sal_plan:        String(row['Sal Plan'] || '').trim() || null,
-              raw_row:         row,
+              // raw_row intentionally omitted - structured columns are sufficient
             };
           });
 
-          // Batch insert in chunks of 500 to avoid request size limits
+          // Batch insert in chunks of 500
           const CHUNK = 500;
           for (let i = 0; i < records.length; i += CHUNK) {
             const chunk = records.slice(i, i + CHUNK);
@@ -287,6 +315,12 @@
           if (y && m) {
               if (y < 100) y += 2000;
               return `${y}-${String(m).padStart(2, '0')}`;
+          }
+
+          // Handle ISO date strings (YYYY-MM-DD) directly — avoids timezone trap
+          if (/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr).trim())) {
+            const parts = String(dateStr).trim().split('-');
+            return `${parts[0]}-${parts[1]}`;
           }
 
           const parsedDate = new Date(dateStr);
