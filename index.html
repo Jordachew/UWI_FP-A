@@ -302,41 +302,78 @@
 
         // --- Assumptions ---
         async function loadAssumptionsFromDB() {
-          const { data, error } = await sb.from('assumptions').select('assumption_type, data');
-          if (error) { console.error('loadAssumptions error', error); return null; }
-          if (!data || data.length === 0) return null;
+          // Load union, new_hires, one_offs, filters from assumptions JSONB table
+          // Load increments from dedicated increments table
+          const [{ data: aData, error: aErr }, { data: iData, error: iErr }] = await Promise.all([
+            sb.from('assumptions').select('assumption_type, data'),
+            sb.from('increments').select('id, employee_id, amount, start_month, notes').order('start_month'),
+          ]);
+          if (aErr) { console.error('loadAssumptions error', aErr); return null; }
+
           const out = { oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '' };
-          data.forEach(r => {
-            if (r.assumption_type === 'union')      out.union      = r.data || [];
-            if (r.assumption_type === 'increments') out.increments = r.data || [];
-            if (r.assumption_type === 'new_hires')  out.newHires   = r.data || [];
-            if (r.assumption_type === 'one_offs')   out.oneOffs    = r.data || [];
-            if (r.assumption_type === 'filters')    out.startMonthFilter = (r.data && r.data.startMonthFilter) || '';
-          });
+          if (aData) {
+            aData.forEach(r => {
+              if (r.assumption_type === 'union')     out.union     = r.data || [];
+              if (r.assumption_type === 'new_hires') out.newHires  = r.data || [];
+              if (r.assumption_type === 'one_offs')  out.oneOffs   = r.data || [];
+              if (r.assumption_type === 'filters')   out.startMonthFilter = (r.data && r.data.startMonthFilter) || '';
+            });
+          }
+          // Map increments table rows to the format the engine expects
+          if (iData && iData.length > 0) {
+            out.increments = iData.map(r => ({
+              uid:        r.id,
+              id:         r.employee_id,
+              amount:     parseFloat(r.amount),
+              startMonth: r.start_month,
+              notes:      r.notes || '',
+            }));
+          }
           return out;
         }
 
         async function saveAssumptionsToDB(assumptions) {
+          // Save union, new_hires, one_offs, filters to assumptions JSONB table
+          // Increments are saved separately via saveIncrementsToDB
           const rows = [
-            { assumption_type: 'union',      data: assumptions.union      || [],  updated_at: new Date().toISOString() },
-            { assumption_type: 'increments', data: assumptions.increments || [],  updated_at: new Date().toISOString() },
-            { assumption_type: 'new_hires',  data: assumptions.newHires   || [],  updated_at: new Date().toISOString() },
-            { assumption_type: 'one_offs',   data: assumptions.oneOffs    || [],  updated_at: new Date().toISOString() },
-            { assumption_type: 'filters',    data: { startMonthFilter: assumptions.startMonthFilter || '' }, updated_at: new Date().toISOString() },
+            { assumption_type: 'union',     data: assumptions.union     || [], updated_at: new Date().toISOString() },
+            { assumption_type: 'new_hires', data: assumptions.newHires  || [], updated_at: new Date().toISOString() },
+            { assumption_type: 'one_offs',  data: assumptions.oneOffs   || [], updated_at: new Date().toISOString() },
+            { assumption_type: 'filters',   data: { startMonthFilter: assumptions.startMonthFilter || '' }, updated_at: new Date().toISOString() },
           ];
           const { error } = await sb.from('assumptions').upsert(rows, { onConflict: 'assumption_type' });
           if (error) console.error('saveAssumptions error', error);
+
+          // Also sync increments to their dedicated table
+          if (assumptions.increments !== undefined) {
+            await saveIncrementsToDB(assumptions.increments);
+          }
+        }
+
+        async function saveIncrementsToDB(increments) {
+          // Clear and replace all increments
+          await sb.from('increments').delete().neq('id', 0);
+          if (!increments || increments.length === 0) return;
+          const records = increments.map(inc => ({
+            employee_id: String(inc.id || '').trim(),
+            amount:      parseFloat(inc.amount) || 0,
+            start_month: inc.startMonth || '',
+            notes:       inc.notes || '',
+          })).filter(r => r.employee_id && r.amount && r.start_month);
+          if (records.length === 0) return;
+          const { error } = await sb.from('increments').insert(records);
+          if (error) console.error('saveIncrements error', error);
         }
 
         async function clearAllDB() {
           await clearPayrollFromDB();
           await sb.from('org_mapping').delete().neq('id', 0);
+          await sb.from('increments').delete().neq('id', 0);
           await sb.from('assumptions').upsert([
-            { assumption_type: 'union',      data: [] },
-            { assumption_type: 'increments', data: [] },
-            { assumption_type: 'new_hires',  data: [] },
-            { assumption_type: 'one_offs',   data: [] },
-            { assumption_type: 'filters',    data: { startMonthFilter: '' } },
+            { assumption_type: 'union',     data: [] },
+            { assumption_type: 'new_hires', data: [] },
+            { assumption_type: 'one_offs',  data: [] },
+            { assumption_type: 'filters',   data: { startMonthFilter: '' } },
           ], { onConflict: 'assumption_type' });
         }
 
@@ -2401,26 +2438,63 @@
                             )}
 
                             {activeAdminTab === 'increments' && (
-                                <div className="max-w-2xl">
-                                    <h2 className="text-2xl font-bold mb-2">Flat Increments</h2>
-                                    <p className="text-gray-600 mb-8">
-                                        Upload a file linking Employee IDs to flat dollar amount increases that compound forever starting from the designated month. 
-                                        <br/><br/>
-                                        <strong className="text-indigo-600">GitHub Auto-Sync:</strong> The engine automatically looks for and loads <code>incremental.csv</code> or <code>incremental.xlsx</code> from your GitHub repository on startup. You can manually upload overrides below.
-                                    </p>
-                                    
+                                <div className="max-w-3xl">
+                                    <h2 className="text-2xl font-bold mb-1">Flat Increments</h2>
+                                    <p className="text-gray-500 text-sm mb-6">Employee-level flat dollar increases applied from a start month onwards. Loaded directly from Supabase — upload a file or add rows manually below.</p>
+
+                                    {/* Current increments from DB */}
+                                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
+                                      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                                        <span className="text-sm font-semibold text-gray-700">{assumptions.increments?.length || 0} increments loaded from Supabase</span>
+                                        {assumptions.increments?.length > 0 && (
+                                          <button onClick={() => showConfirm('Delete ALL flat increments from Supabase?', () => saveAssumptionsState({...assumptions, increments: []}))}
+                                            className="text-xs text-red-600 font-semibold hover:underline">Clear All</button>
+                                        )}
+                                      </div>
+                                      {assumptions.increments?.length > 0 ? (
+                                        <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                                          <table className="w-full text-xs border-collapse">
+                                            <thead className="bg-gray-50 sticky top-0">
+                                              <tr>
+                                                {['Employee ID','Amount','Start Month','Notes',''].map(h => <th key={h} className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200">{h}</th>)}
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                              {assumptions.increments.map((inc, i) => (
+                                                <tr key={inc.uid || i} className="hover:bg-gray-50">
+                                                  <td className="px-3 py-2 font-mono">{inc.id}</td>
+                                                  <td className="px-3 py-2 font-semibold text-green-700">{formatCurrency(inc.amount)}</td>
+                                                  <td className="px-3 py-2">{formatMonthLabel(inc.startMonth)}</td>
+                                                  <td className="px-3 py-2 text-gray-400">{inc.notes || '-'}</td>
+                                                  <td className="px-3 py-2">
+                                                    <button onClick={() => saveAssumptionsState({...assumptions, increments: assumptions.increments.filter((_, j) => j !== i)})}
+                                                      className="text-red-400 hover:text-red-600"><TrashIcon /></button>
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      ) : (
+                                        <div className="p-6 text-center text-gray-400 text-sm">No increments loaded. Upload a file below.</div>
+                                      )}
+                                    </div>
+
+                                    {/* Upload file */}
                                     <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-                                        <label className="block text-xs font-bold text-gray-700 mb-2">Default Start Month (Optional)</label>
+                                        <h3 className="text-sm font-bold text-gray-700 mb-3">Upload Increments File</h3>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-2">Default Start Month</label>
                                         <select value={incMonth} onChange={e=>setIncMonth(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm bg-white mb-4">
                                             <option value="2026-08">Default: Aug-26</option>
                                             {forecastMonthsList.map(m => m !== '2026-08' ? <option key={m} value={m}>{formatMonthLabel(m)}</option> : null)}
                                         </select>
-                                        <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
+                                        <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-6 text-center cursor-pointer hover:bg-indigo-50 transition-colors bg-white">
                                             <UploadIcon />
-                                            <span className="text-indigo-600 font-medium text-sm">Select File</span>
+                                            <span className="text-indigo-600 font-medium text-sm">Select CSV / Excel file</span>
+                                            <p className="text-gray-400 text-xs mt-1">Columns: ID, Amount, Start Month</p>
                                             <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleIncrementUpload} ref={incInputRef} />
                                         </label>
-                                        <button onClick={()=>downloadTemplate('increments')} className="mt-4 text-sm text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
+                                        <button onClick={()=>downloadTemplate('increments')} className="mt-3 text-xs text-indigo-600 font-semibold flex items-center hover:underline"><DownloadIcon /> Download Template</button>
                                     </div>
                                 </div>
                             )}
