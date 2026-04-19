@@ -70,14 +70,31 @@
 
         // --- Payroll Data ---
         async function loadPayrollFromDB() {
-          // Load structured columns — use calendar_month as the time key
-          const { data, error } = await sb
-            .from('payroll_data')
-            .select('calendar_month, pay_period_end, employee_id, employee_name, amount, group_name, org_number, account_number, account_desc, position_desc, department_name, sal_plan')
-            .order('calendar_month', { ascending: true });
-          if (error) { console.error('loadPayroll error', error); return null; }
-          return data.map(r => ({
-            'Pay Period End':    r.calendar_month || r.pay_period_end,
+          // Query the pre-aggregated monthly summary view — 46K rows vs 440K raw
+          // Paginate in batches of 5000 to get all rows past Supabase's 1000-row default
+          const PAGE = 5000;
+          let allRows = [];
+          let from = 0;
+          let keepGoing = true;
+
+          while (keepGoing) {
+            const { data, error } = await sb
+              .from('payroll_monthly_summary')
+              .select('calendar_month, employee_id, employee_name, amount, group_name, org_number, account_number, account_desc, position_desc, department_name, sal_plan')
+              .order('calendar_month', { ascending: true })
+              .range(from, from + PAGE - 1);
+
+            if (error) { console.error('loadPayroll error', error); return null; }
+            if (!data || data.length === 0) break;
+
+            allRows = allRows.concat(data);
+            from += PAGE;
+            keepGoing = data.length === PAGE; // stop when we get less than a full page
+          }
+
+          // Map to the field names the app engine expects
+          return allRows.map(r => ({
+            'Pay Period End':    r.calendar_month,
             'ID':                r.employee_id,
             'Name':              r.employee_name,
             'Amount':            r.amount != null ? parseFloat(r.amount) : 0,
@@ -1958,7 +1975,8 @@
                   {isProcessing ? (
                      <div className="py-12">
                        <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                       <h2 className="text-xl font-semibold text-gray-700">Loading Data Engine...</h2>
+                       <h2 className="text-xl font-semibold text-gray-700">Loading from Supabase...</h2>
+                       {rawData && <p className="text-sm text-gray-400 mt-2">{rawData.length.toLocaleString()} rows loaded — building engine...</p>}
                      </div>
                   ) : (
                     <>
