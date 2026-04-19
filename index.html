@@ -17,6 +17,9 @@
 
     <!-- JSZip for handling compressed files directly in the browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
     <div id="root"></div>
@@ -47,56 +50,133 @@
             </label>
         );
 
-        // --- Browser IndexedDB Storage Engine ---
-        const DB_NAME = 'UWIPayrollDB';
-        const STORE_NAME = 'csvData';
+        // --- Supabase Data Layer ---
+        const SUPABASE_URL  = 'https://rvtaryvxiryfmurudjcx.supabase.co';
+        const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2dGFyeXZ4aXJ5Zm11cnVkamN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODI4MjMsImV4cCI6MjA5MTI1ODgyM30.qnieHBDcLHeoRKelnO3gUMK4qKR8tlBjkWgOopJrCmM';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function saveToDB(storeKey, data) {
-          return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, 1);
-            request.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
-            request.onsuccess = (e) => {
-              const db = e.target.result;
-              const tx = db.transaction(STORE_NAME, 'readwrite');
-              tx.objectStore(STORE_NAME).put(data, storeKey);
-              tx.oncomplete = () => resolve();
-              tx.onerror = () => reject(tx.error);
+        // --- Payroll Data ---
+        async function loadPayrollFromDB() {
+          const { data, error } = await sb.from('payroll_data').select('raw_row, pay_period_end').order('pay_period_end', { ascending: true });
+          if (error) { console.error('loadPayroll error', error); return null; }
+          // Reconstruct raw rows with pay period end merged in
+          return data.map(r => ({ ...r.raw_row, 'Pay Period End': r.pay_period_end }));
+        }
+
+        async function savePayrollToDB(parsedRows, filename) {
+          // Map parsed rows to table columns; keep full row in raw_row for safety
+          const records = parsedRows.map(row => {
+            const orgKey = Object.keys(row).find(k => {
+              const c = String(k).replace(/\s+/g, '').toLowerCase();
+              return c === 'org.#' || c === 'org#' || c === 'org' || c === 'orgnum';
+            });
+            const payPeriod = parseDateStrToMonthKey(row['Pay Period End']);
+            // Convert month key back to a proper date (first of month) for the date column
+            const payDate = payPeriod ? `${payPeriod}-01` : null;
+            return {
+              pay_period_end:  payDate,
+              employee_id:     String(row['ID'] || '').trim() || null,
+              employee_name:   String(row['Name'] || '').trim() || null,
+              amount:          parseAmount(row['Amount']),
+              group_name:      String(row['Group'] || '').trim() || null,
+              org_number:      orgKey ? String(row[orgKey]).trim() : null,
+              account_number:  String(row['Account #'] || row['Account Number'] || '').trim() || null,
+              account_desc:    String(row['Acct. Description'] || row['Account'] || '').trim() || null,
+              position_desc:   String(row['Posn Desc'] || row['Position'] || '').trim() || null,
+              department_name: String(row['Department name'] || row['Department'] || row['Descr_1'] || '').trim() || null,
+              sal_plan:        String(row['Sal Plan'] || '').trim() || null,
+              raw_row:         row,
             };
-            request.onerror = () => reject(request.error);
+          });
+
+          // Batch insert in chunks of 500 to avoid request size limits
+          const CHUNK = 500;
+          for (let i = 0; i < records.length; i += CHUNK) {
+            const chunk = records.slice(i, i + CHUNK);
+            const { error } = await sb.from('payroll_data').insert(chunk);
+            if (error) { console.error('savePayroll error', error); throw error; }
+          }
+
+          // Log the upload
+          await sb.from('upload_log').insert({
+            filename:      filename || 'manual_upload',
+            rows_inserted: records.length,
+            rows_in_file:  parsedRows.length,
+            notes:         'Uploaded via app'
           });
         }
 
-        function loadFromDB(storeKey) {
-          return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, 1);
-            request.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
-            request.onsuccess = (e) => {
-              const db = e.target.result;
-              if (!db.objectStoreNames.contains(STORE_NAME)) return resolve(null);
-              const tx = db.transaction(STORE_NAME, 'readonly');
-              const store = tx.objectStore(STORE_NAME);
-              const getReq = store.get(storeKey);
-              getReq.onsuccess = () => resolve(getReq.result);
-              getReq.onerror = () => reject(getReq.error);
-            };
-            request.onerror = () => reject(request.error);
-          });
+        async function clearPayrollFromDB() {
+          const { error } = await sb.from('payroll_data').delete().neq('id', 0);
+          if (error) console.error('clearPayroll error', error);
         }
 
-        function clearDB() {
-          return new Promise((resolve) => {
-            const request = indexedDB.open(DB_NAME, 1);
-            request.onsuccess = (e) => {
-              const db = e.target.result;
-              if (db.objectStoreNames.contains(STORE_NAME)) {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                tx.objectStore(STORE_NAME).clear();
-                tx.oncomplete = () => resolve();
-              } else {
-                resolve();
-              }
-            };
+        // --- Org Mapping ---
+        async function loadMappingFromDB() {
+          const { data, error } = await sb.from('org_mapping').select('org_number, faculty, department');
+          if (error) { console.error('loadMapping error', error); return null; }
+          if (!data || data.length === 0) return null;
+          const map = {};
+          data.forEach(r => { map[r.org_number] = { faculty: r.faculty, dept: r.department }; });
+          return map;
+        }
+
+        async function saveMappingToDB(parsedRows) {
+          const records = parsedRows.map(r => {
+            let org = '', fac = '', dept = '';
+            for (const [k, v] of Object.entries(r)) {
+              const c = String(k).toLowerCase().trim();
+              if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
+              if (c === 'faculty') fac = String(v).trim();
+              if (c === 'department') dept = String(v).trim();
+            }
+            return org ? { org_number: org, faculty: fac, department: dept } : null;
+          }).filter(Boolean);
+
+          if (records.length === 0) return;
+          const { error } = await sb.from('org_mapping')
+            .upsert(records, { onConflict: 'org_number' });
+          if (error) console.error('saveMapping error', error);
+        }
+
+        // --- Assumptions ---
+        async function loadAssumptionsFromDB() {
+          const { data, error } = await sb.from('assumptions').select('assumption_type, data');
+          if (error) { console.error('loadAssumptions error', error); return null; }
+          if (!data || data.length === 0) return null;
+          const out = { oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '' };
+          data.forEach(r => {
+            if (r.assumption_type === 'union')      out.union      = r.data || [];
+            if (r.assumption_type === 'increments') out.increments = r.data || [];
+            if (r.assumption_type === 'new_hires')  out.newHires   = r.data || [];
+            if (r.assumption_type === 'one_offs')   out.oneOffs    = r.data || [];
+            if (r.assumption_type === 'filters')    out.startMonthFilter = (r.data && r.data.startMonthFilter) || '';
           });
+          return out;
+        }
+
+        async function saveAssumptionsToDB(assumptions) {
+          const rows = [
+            { assumption_type: 'union',      data: assumptions.union      || [],  updated_at: new Date().toISOString() },
+            { assumption_type: 'increments', data: assumptions.increments || [],  updated_at: new Date().toISOString() },
+            { assumption_type: 'new_hires',  data: assumptions.newHires   || [],  updated_at: new Date().toISOString() },
+            { assumption_type: 'one_offs',   data: assumptions.oneOffs    || [],  updated_at: new Date().toISOString() },
+            { assumption_type: 'filters',    data: { startMonthFilter: assumptions.startMonthFilter || '' }, updated_at: new Date().toISOString() },
+          ];
+          const { error } = await sb.from('assumptions').upsert(rows, { onConflict: 'assumption_type' });
+          if (error) console.error('saveAssumptions error', error);
+        }
+
+        async function clearAllDB() {
+          await clearPayrollFromDB();
+          await sb.from('org_mapping').delete().neq('id', 0);
+          await sb.from('assumptions').upsert([
+            { assumption_type: 'union',      data: [] },
+            { assumption_type: 'increments', data: [] },
+            { assumption_type: 'new_hires',  data: [] },
+            { assumption_type: 'one_offs',   data: [] },
+            { assumption_type: 'filters',    data: { startMonthFilter: '' } },
+          ], { onConflict: 'assumption_type' });
         }
 
         // --- Data Parsers ---
@@ -402,151 +482,27 @@
             return false;
           };
 
-          // Step 1: Initial Load
+          // Step 1: Initial Load from Supabase
           useEffect(() => {
             const initApp = async () => {
               try {
-                // Load Primary Data
-                const savedData = await loadFromDB('latestUpload');
+                // Load payroll data from Supabase
+                const savedData = await loadPayrollFromDB();
                 if (savedData && savedData.length > 0) {
                     setRawData(savedData);
                 } else {
-                    let loaded = await fetchAndProcessFile('default_data.zip', async (p) => { await saveToDB('latestUpload', p); setRawData(p); });
-                    if (!loaded) loaded = await fetchAndProcessFile('default_data.xlsx', async (p) => { await saveToDB('latestUpload', p); setRawData(p); });
-                    if (!loaded) loaded = await fetchAndProcessFile('default_data.csv', async (p) => { await saveToDB('latestUpload', p); setRawData(p); });
-                    if (!loaded) setIsProcessing(false); 
+                    setIsProcessing(false);
                 }
 
-                // Load Mapping Data
-                let tempMapping = await loadFromDB('mappingData');
-                if (!tempMapping) {
-                    const processMap = async (parsed) => {
-                        const map = {};
-                        parsed.forEach(r => {
-                            let org = '', fac = '', dept = '';
-                            for (const [k, v] of Object.entries(r)) {
-                                const c = String(k).toLowerCase().trim();
-                                if (c === 'org' || c === 'org.' || c === 'org. #') org = String(v).trim();
-                                if (c === 'faculty') fac = String(v).trim();
-                                if (c === 'department') dept = String(v).trim();
-                            }
-                            if (org) map[org] = { faculty: fac, dept: dept };
-                        });
-                        tempMapping = map;
-                        await saveToDB('mappingData', map);
-                    };
-
-                    let mapLoaded = await fetchAndProcessFile('Mapping v3.xlsx', processMap);
-                    if (!mapLoaded) mapLoaded = await fetchAndProcessFile('mapping.xlsx', processMap);
-                    if (!mapLoaded) mapLoaded = await fetchAndProcessFile('mapping.csv', processMap);
-                }
+                // Load org mapping from Supabase
+                const tempMapping = await loadMappingFromDB();
                 if (tempMapping) setMappingData(tempMapping);
 
-                // Load Assumptions
-                let tempAssumptions = { oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '' };
-                const savedAdj = await loadFromDB('assumptions');
-                if (savedAdj) {
-                    if (Array.isArray(savedAdj)) tempAssumptions = { ...tempAssumptions, oneOffs: savedAdj };
-                    else tempAssumptions = { ...tempAssumptions, ...savedAdj };
-                }
-
-                let assumptionsChanged = false;
-
-                if (!tempAssumptions.increments || tempAssumptions.increments.length === 0) {
-                    const processInc = (parsed) => {
-                        const newInc = parsed.map(r => {
-                            let id = '', amt = 0, sm = '2026-08'; // Default to Aug 2026!
-                            for (const [k, v] of Object.entries(r)) {
-                                const c = String(k).toLowerCase().trim();
-                                if (c==='id' || c==='id number') id = String(v).trim();
-                                if (c==='amount' || c==='value') amt = parseAmount(v);
-                                if (c==='start month' || c==='month') {
-                                    const parsedDate = parseDateStrToMonthKey(v);
-                                    if (parsedDate) sm = parsedDate;
-                                }
-                            }
-                            return { id, amount: amt, startMonth: sm, uid: Date.now() + Math.random() };
-                        }).filter(r => r.id && r.amount !== 0);
-                        if (newInc.length > 0) { tempAssumptions.increments = newInc; assumptionsChanged = true; }
-                    };
-                    
-                    let incLoaded = await fetchAndProcessFile('incremental.csv', processInc);
-                    if (!incLoaded) incLoaded = await fetchAndProcessFile('incremental.xlsx', processInc);
-                    if (!incLoaded) incLoaded = await fetchAndProcessFile('default_increments.csv', processInc);
-                }
-
-                if (!tempAssumptions.newHires || tempAssumptions.newHires.length === 0) {
-                    const processNewHires = (parsed) => {
-                        const newHires = parsed.map(r => {
-                            let id = `NH-${Math.floor(Math.random()*100000)}`, amt = 0, sm = '2026-08', name = 'New Hire', dept = 'TBD Dept', fac = 'TBD Faculty', pos = 'TBD Position', grp = '';
-                            for (const [k, v] of Object.entries(r)) {
-                                const c = String(k).toLowerCase().trim();
-                                if (c==='id' || c==='employee id') id = String(v).trim() || id;
-                                if (c==='amount' || c==='salary') amt = parseAmount(v);
-                                if (c==='start month' || c==='month') {
-                                    const parsedDate = parseDateStrToMonthKey(v);
-                                    if (parsedDate) sm = parsedDate;
-                                }
-                                if (c==='name' || c==='employee name') name = String(v).trim();
-                                if (c==='department' || c==='dept') dept = String(v).trim();
-                                if (c==='faculty') fac = String(v).trim();
-                                if (c==='position' || c==='title') pos = String(v).trim();
-                                if (c==='group' || c==='union') grp = String(v).trim();
-                            }
-                            return { id, amount: amt, startMonth: sm, name, department: dept, faculty: fac, position: pos, group: grp, uid: Date.now() + Math.random() };
-                        }).filter(r => r.amount !== 0);
-                        if (newHires.length > 0) { tempAssumptions.newHires = newHires; assumptionsChanged = true; }
-                    };
-                    
-                    let nhLoaded = await fetchAndProcessFile('newhires.csv', processNewHires);
-                    if (!nhLoaded) nhLoaded = await fetchAndProcessFile('newhires.xlsx', processNewHires);
-                    if (!nhLoaded) nhLoaded = await fetchAndProcessFile('default_new_hires.csv', processNewHires);
-                }
-
-                if (!tempAssumptions.union || tempAssumptions.union.length === 0) {
-                    const processUnion = (parsed) => {
-                        const newUnion = parsed.map(r => {
-                            let grp = '', pct = 0, sm = '2026-08';
-                            for (const [k, v] of Object.entries(r)) {
-                                const c = String(k).toLowerCase().trim();
-                                if (c==='group' || c==='union group') grp = String(v).trim();
-                                if (c==='percentage' || c==='pct' || c==='%') pct = parseFloat(v);
-                                if (c==='start month' || c==='month') {
-                                    const parsedDate = parseDateStrToMonthKey(v);
-                                    if (parsedDate) sm = parsedDate;
-                                }
-                            }
-                            return { group: grp, percentage: pct, startMonth: sm, id: Date.now() + Math.random() };
-                        }).filter(r => r.group && !isNaN(r.percentage));
-                        if (newUnion.length > 0) { tempAssumptions.union = newUnion; assumptionsChanged = true; }
-                    };
-                    let uLoaded = await fetchAndProcessFile('union.csv', processUnion);
-                    if (!uLoaded) uLoaded = await fetchAndProcessFile('union.xlsx', processUnion);
-                    if (!uLoaded) uLoaded = await fetchAndProcessFile('default_union_increases.csv', processUnion);
-                }
-
-                if (!tempAssumptions.oneOffs || tempAssumptions.oneOffs.length === 0) {
-                    const processOneOffs = (parsed) => {
-                        const newOneOffs = parsed.map(r => {
-                            let id = '', amt = 0, m = '';
-                            for (const [k, v] of Object.entries(r)) {
-                                const c = String(k).toLowerCase().trim();
-                                if (c==='id') id = String(v).trim();
-                                if (c==='amount') amt = parseAmount(v);
-                                if (c==='month') m = parseDateStrToMonthKey(v) || String(v).trim();
-                            }
-                            return { ID: id, Amount: amt, Month: m, uid: Date.now() + Math.random() };
-                        }).filter(r => r.ID && r.Amount && r.Month);
-                        if (newOneOffs.length > 0) { tempAssumptions.oneOffs = newOneOffs; assumptionsChanged = true; }
-                    };
-                    let oLoaded = await fetchAndProcessFile('oneoffs.csv', processOneOffs);
-                    if (!oLoaded) oLoaded = await fetchAndProcessFile('oneoffs.xlsx', processOneOffs);
-                    if (!oLoaded) oLoaded = await fetchAndProcessFile('default_one_offs.csv', processOneOffs);
-                }
-
+                // Load assumptions from Supabase
+                const savedAssumptions = await loadAssumptionsFromDB();
+                const tempAssumptions = savedAssumptions || { oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '' };
                 setAssumptions(tempAssumptions);
-                if (assumptionsChanged) saveToDB('assumptions', tempAssumptions);
-                
+
                 setIsProcessing(false);
               } catch (err) {
                 console.error("Initialization failed", err);
@@ -560,13 +516,17 @@
             const file = e.target.files[0];
             if (!file) return;
             processFile(file, async (parsed) => {
-              let finalData = parsed;
-              if (rawData && rawData.length > 0) {
-                  const doAppend = window.confirm(`Existing data found (${rawData.length} rows).\n\nClick [OK] to APPEND to history.\nClick [Cancel] to OVERWRITE everything.`);
-                  if (doAppend) finalData = [...rawData, ...parsed];
+              try {
+                const doAppend = rawData && rawData.length > 0
+                  ? window.confirm(`Existing data found (${rawData.length} rows).\n\nClick [OK] to APPEND to history.\nClick [Cancel] to OVERWRITE everything.`)
+                  : false;
+                if (!doAppend) await clearPayrollFromDB();
+                await savePayrollToDB(parsed, file.name);
+                const freshData = await loadPayrollFromDB();
+                setRawData(freshData);
+              } catch(err) {
+                alert('Upload failed: ' + err.message);
               }
-              await saveToDB('latestUpload', finalData);
-              setRawData(finalData);
               if (fileInputRef.current) fileInputRef.current.value = null;
             });
           };
@@ -574,7 +534,7 @@
           const handleClearData = async () => {
             if (window.confirm("Are you sure you want to completely clear all saved raw data AND forecast assumptions?")) {
               setIsProcessing(true);
-              await clearDB();
+              await clearAllDB();
               setRawData(null);
               setProcessedDataCache(null);
               setAssumptions({ oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '' });
@@ -590,7 +550,7 @@
 
           const saveAssumptionsState = async (newAssumptions) => {
               setAssumptions(newAssumptions);
-              await saveToDB('assumptions', newAssumptions);
+              await saveAssumptionsToDB(newAssumptions);
           };
 
           // --- Step 2: Hydration Phase (Pre-Processing) ---
@@ -652,7 +612,7 @@
                           id: Date.now() + Math.random()
                       }));
                       const newAssumptions = { ...prev, union: autoRules };
-                      saveToDB('assumptions', newAssumptions);
+                      saveAssumptionsToDB(newAssumptions);
                       return newAssumptions;
                   }
                   return prev;
@@ -1390,7 +1350,7 @@
                       if (org) map[org] = { faculty: fac, dept: dept };
                   });
                   setMappingData(map);
-                  await saveToDB('mappingData', map);
+                  await saveMappingToDB(parsed);
                   alert("Organizational Mapping successfully updated!");
                   if (mappingInputRef.current) mappingInputRef.current.value = null;
               });
@@ -1640,10 +1600,13 @@
                             <button onClick={()=>setActiveAdminTab('filters')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mb-1 ${activeAdminTab==='filters'?'bg-blue-100 text-blue-700':'text-gray-600 hover:bg-gray-100'}`}>Data Filters</button>
                             <button onClick={()=>setActiveAdminTab('glossary')} className={`text-left px-4 py-2 rounded-lg text-sm font-semibold mt-auto border border-gray-300 ${activeAdminTab==='glossary'?'bg-gray-200 text-gray-800':'text-gray-600 hover:bg-gray-100'}`}>Glossary & Help</button>
                             
-                            <button onClick={() => {
-                                clearDB().then(() => window.location.reload());
+                            <button onClick={async () => {
+                                if (window.confirm("Clear all local data and reload from Supabase?")) {
+                                    await clearAllDB();
+                                    window.location.reload();
+                                }
                             }} className="text-left px-4 py-2 rounded-lg text-sm font-bold mt-4 border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors shadow-sm">
-                                ↻ Sync GitHub Rules
+                                ↻ Reset & Reload
                             </button>
                         </div>
                         
