@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- CSP: only allow scripts from known CDNs, no inline eval except Babel transpile -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src https://*.supabase.co; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src https://*.supabase.co; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline';">
     <title>UWI Payroll Analytics</title>
 
     <!-- Tailwind CSS (pinned version) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- React 18 (pinned + crossorigin for CORS error reporting) -->
-    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"
-            integrity="sha384-MiNbFromzciQAkiicvqYVqKnfg07Qw7s+4CQJE/M+h6VsZ0oE4bkFsMwA/+cFNf"
-            crossorigin="anonymous"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"
-            integrity="sha384-MiNbFromzciQAkiicvqYVqKnfg07Qw7s+4CQJE/M+h6VsZ0oE4bkFsMwA/+cFNf"
-            crossorigin="anonymous"></script>
+    <!-- React 18 (pinned) -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 
     <!-- Babel standalone (JSX transpile — acceptable for internal finance tool) -->
     <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
@@ -97,6 +93,8 @@
           );
         }
         const useToast = () => React.useContext(ToastContext);
+
+        const FilterCheckbox = ({ label, checked, onChange, isIndigo }) => (
             <label className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-colors text-xs font-medium ${checked ? (isIndigo ? 'bg-indigo-100 shadow-sm text-indigo-800' : 'bg-white shadow-sm text-blue-700') : 'text-gray-500 hover:bg-gray-100'}`}>
                 <input type="checkbox" className="hidden" checked={checked} onChange={onChange} />
                 <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${checked ? (isIndigo ? 'bg-indigo-600 border-indigo-600' : 'bg-blue-600 border-blue-600') : 'border-gray-400'}`}>
