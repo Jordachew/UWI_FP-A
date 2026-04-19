@@ -259,6 +259,9 @@
             if (error) { console.error('savePayroll error', error); throw error; }
           }
 
+          // Refresh the materialized view cache so new data is visible
+          await sb.rpc('refresh_payroll_cache');
+
           // Log the upload
           await sb.from('upload_log').insert({
             filename:      filename || 'manual_upload',
@@ -271,6 +274,8 @@
         async function clearPayrollFromDB() {
           const { error } = await sb.from('payroll_data').delete().neq('id', 0);
           if (error) console.error('clearPayroll error', error);
+          // Refresh cache after clear
+          await sb.rpc('refresh_payroll_cache').catch(e => console.warn('cache refresh failed', e));
         }
 
         // --- Org Mapping ---
