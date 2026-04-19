@@ -70,30 +70,12 @@
 
         // --- Payroll Data ---
         async function loadPayrollFromDB() {
-          // Query the pre-aggregated monthly summary view — 46K rows vs 440K raw
-          // Paginate in batches of 5000 to get all rows past Supabase's 1000-row default
-          const PAGE = 5000;
-          let allRows = [];
-          let from = 0;
-          let keepGoing = true;
+          // Single RPC call — no row limit, returns all 46K aggregated rows in one shot
+          const { data, error } = await sb.rpc('get_payroll_data');
+          if (error) { console.error('loadPayroll error', error); return null; }
+          if (!data || data.length === 0) return null;
 
-          while (keepGoing) {
-            const { data, error } = await sb
-              .from('payroll_monthly_summary')
-              .select('calendar_month, employee_id, employee_name, amount, group_name, org_number, account_number, account_desc, position_desc, department_name, sal_plan')
-              .order('calendar_month', { ascending: true })
-              .range(from, from + PAGE - 1);
-
-            if (error) { console.error('loadPayroll error', error); return null; }
-            if (!data || data.length === 0) break;
-
-            allRows = allRows.concat(data);
-            from += PAGE;
-            keepGoing = data.length === PAGE; // stop when we get less than a full page
-          }
-
-          // Map to the field names the app engine expects
-          return allRows.map(r => ({
+          return data.map(r => ({
             'Pay Period End':    r.calendar_month,
             'ID':                r.employee_id,
             'Name':              r.employee_name,
