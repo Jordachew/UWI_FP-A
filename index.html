@@ -29,7 +29,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useMemo, useCallback, useEffect, useRef, useTransition } = React;
+        const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
         // --- SVGs & Reusable Components ---
         const ChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline"><polyline points="9 18 15 12 9 6"></polyline></svg>;
@@ -1035,7 +1035,11 @@
           const [processedDataCache, setProcessedDataCache] = useState(null);
           
           const [mappingData, setMappingData] = useState(null);
-          const [isProcessing, setIsProcessing] = useState(true); 
+          const [isProcessing, setIsProcessing] = useState(true);
+
+          // Derived from processedDataCache — used throughout render
+          const uniqueGroups  = processedDataCache?.uniqueGroups  || [];
+          const rawMonthsList = processedDataCache?.rawMonthsList || [];
           
           const [assumptions, setAssumptions] = useState({ oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '' });
           const [activeAdminTab, setActiveAdminTab] = useState('union');
@@ -1203,14 +1207,11 @@
               await saveAssumptionsToDB(newAssumptions);
           };
 
-          // useTransition for non-blocking heavy computation (replaces setTimeout hacks)
-          const [isPending, startTransition] = useTransition();
-
           // --- Step 2: Hydration Phase (Pre-Processing) ---
           useEffect(() => {
               if (!rawData) return;
               setIsProcessing(true);
-              startTransition(() => {
+              setTimeout(() => {
                   let orgKey = null;
                   if (rawData.length > 0) {
                       orgKey = Object.keys(rawData[0]).find(k => {
@@ -1236,7 +1237,7 @@
                       uniqueGroups: Array.from(uniqueGroupsSet).sort(),
                       rawMonthsList: Array.from(monthsSet).sort()
                   });
-              });
+              }, 0);
           }, [rawData]);
 
           // --- Derived Setup & Auto-Apply 5% Rules ---
@@ -1311,11 +1312,11 @@
               return list;
           }, [processedDataCache, assumptions.startMonthFilter]);
 
-          // --- Step 3: Core Engine Build (Highly Optimized & Scenario Tagged) ---
+          // --- Step 3: Core Engine Build ---
           useEffect(() => {
             if (!processedDataCache) return;
             setIsProcessing(true);
-            startTransition(() => {
+            setTimeout(() => {
               const pData = processedDataCache.data;
               const filteredData = pData.filter(d => d.month && (!assumptions.startMonthFilter || d.month >= assumptions.startMonthFilter));
 
@@ -1505,7 +1506,7 @@
               if (!dashboardMonth || dashboardMonth < (assumptions.startMonthFilter||'')) setDashboardMonth(baseMonth);
               setExpandedRows(new Set(['root']));
               setIsProcessing(false);
-            });
+            }, 0);
           }, [processedDataCache, assumptions, mappingData, hierarchyIndex, scenarioFilters]);
 
           const toggleRow = (id) => {
