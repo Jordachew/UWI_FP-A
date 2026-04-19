@@ -124,11 +124,10 @@
 
         // --- Payroll Data ---
         async function loadPayrollFromDB() {
-          // Single RPC call — no row limit, returns all 46K aggregated rows in one shot
-          const { data, error } = await sb.rpc('get_payroll_data');
+          // Explicit limit(100000) bypasses PostgREST's default 1000-row cap on RPC responses
+          const { data, error } = await sb.rpc('get_payroll_data').limit(100000);
           if (error) { console.error('loadPayroll error', error); return null; }
           if (!data || data.length === 0) return null;
-
           return data.map(r => ({
             'Pay Period End':    r.calendar_month,
             'ID':                r.employee_id,
