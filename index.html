@@ -236,7 +236,9 @@
             }
             return {
               pay_period_end:  payDate,
-              calendar_month:  fiscalPeriodToCalendarMonth(row['Pay Period End']),
+              // Derive calendar_month from the resolved payDate — reliable regardless of source format
+              // DB trigger also handles this as a safety net
+              calendar_month:  payDate ? payDate.substring(0, 7) : null,
               employee_id:     String(row['ID'] || '').trim() || null,
               employee_name:   String(row['Name'] || '').trim() || null,
               amount:          parseAmount(row['Amount']),
