@@ -1481,7 +1481,9 @@
                           const inc = assumptions.increments[i];
                           if (fm >= inc.startMonth) {
                               const info = empInfoMap[inc.id] || { 'Name': `New Hire (${inc.id})`, 'ID': inc.id, 'Department name': 'TBD / New Hires' };
-                              combinedData.push({ month: fm, amount: parseFloat(inc.amount), id: inc.id, row: info, cleanOrgValue: null, __Scenario: '4. Flat Increments' });
+                              // Pull org number from the employee's actual payroll row so faculty mapping works
+                              const orgVal = info['Org. #'] || null;
+                              combinedData.push({ month: fm, amount: parseFloat(inc.amount), id: inc.id, row: info, cleanOrgValue: orgVal ? String(orgVal).trim() : null, __Scenario: '4. Flat Increments' });
                           }
                       }
                   }
