@@ -1643,11 +1643,9 @@
                 });
             }
 
-            // H1 = first 6 months of FY (Aug–Jan)
-            // Aug-Nov = first 4 months of FY
+            // H1 = two 6-month halves per FY (Aug–Jan = H1, Feb–Jul = H2)
+            // First4 = three 4-month periods per FY (Aug–Nov = P1, Dec–Mar = P2, Apr–Jul = P3)
             if (timeGrouping === 'h1' || timeGrouping === 'first4') {
-                const sliceMonths = timeGrouping === 'h1' ? 6 : 4;
-                const sliceLabel  = timeGrouping === 'h1' ? 'H1' : 'Aug–Nov';
                 const groups = {};
                 allMonths.forEach(m => {
                     const [yStr, mmStr] = m.split('-');
@@ -1655,17 +1653,29 @@
                     const mm = parseInt(mmStr, 10);
                     const fyStartYear = mm >= 8 ? y : y - 1;
                     const fyEndYear   = fyStartYear + 1;
-                    // Position within FY (Aug=1, Sep=2, ... Jan=6, Feb=7 ... Jul=12)
+                    const fyLabel     = `${fyStartYear}/${fyEndYear.toString().slice(2)}`;
+                    // fyPos: position within FY (Aug=1 ... Jul=12)
                     const fyPos = mm >= 8 ? mm - 7 : mm + 5;
-                    if (fyPos > sliceMonths) return; // outside the window
-                    const key = `${sliceLabel}-FY${fyStartYear}`;
-                    const label = `${sliceLabel} FY${fyStartYear}/${fyEndYear.toString().slice(2)}`;
+
+                    let key, label;
+                    if (timeGrouping === 'h1') {
+                        const half = fyPos <= 6 ? 'H1' : 'H2';
+                        key   = `${fyStartYear}-${half}`;
+                        label = `${half} FY${fyLabel}`;
+                    } else {
+                        const period = fyPos <= 4 ? 'P1' : fyPos <= 8 ? 'P2' : 'P3';
+                        const periodLabel = period === 'P1' ? 'Aug–Nov' : period === 'P2' ? 'Dec–Mar' : 'Apr–Jul';
+                        key   = `${fyStartYear}-${period}`;
+                        label = `${periodLabel} FY${fyLabel}`;
+                    }
+
                     if (!groups[key]) groups[key] = { key, label, months: [], type: 'actual', containsBaseMonth: false };
                     groups[key].months.push(m);
                     if (m === dataModel.baseMonth) groups[key].containsBaseMonth = true;
                 });
+
                 return Object.values(groups).sort((a,b) => a.key.localeCompare(b.key)).map(g => {
-                    const hasActual  = g.months.some(m => dataModel.actualMonths.includes(m));
+                    const hasActual   = g.months.some(m => dataModel.actualMonths.includes(m));
                     const hasForecast = g.months.some(m => dataModel.forecastMonths.includes(m));
                     g.type = (hasActual && hasForecast) ? 'mixed' : (hasForecast ? 'forecast' : 'actual');
                     return g;
@@ -2222,10 +2232,10 @@
                     value={timeGrouping} onChange={(e) => setTimeGrouping(e.target.value)} disabled={isProcessing}>
                     <option value="month">Monthly</option>
                     <option value="quarter">Quarterly (FY)</option>
+                    <option value="h1">Half-Year (H1: Aug–Jan, H2: Feb–Jul)</option>
+                    <option value="first4">4-Monthly (Aug–Nov, Dec–Mar, Apr–Jul)</option>
                     <option value="annual">Annual (FY)</option>
                     <option value="ytd">YTD</option>
-                    <option value="h1">H1 — First 6 Months (Aug–Jan)</option>
-                    <option value="first4">First 4 Months (Aug–Nov)</option>
                   </select>
 
                   {/* Metric toggle */}
