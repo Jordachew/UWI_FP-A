@@ -1288,13 +1288,17 @@
               if (!rawData) return;
               setIsProcessing(true);
               setTimeout(() => {
-                  let orgKey = null;
-                  if (rawData.length > 0) {
-                      orgKey = Object.keys(rawData[0]).find(k => {
+                  // Find the org number column under any of its possible names
+                  const findOrgValue = (row) => {
+                      for (const k of Object.keys(row)) {
                           const c = String(k).replace(/\s+/g, '').toLowerCase();
-                          return c === 'org.#' || c === 'org#' || c === 'org' || c === 'orgnum';
-                      });
-                  }
+                          if (c === 'org.#' || c === 'org#' || c === 'org' || c === 'orgnum') {
+                              const v = row[k];
+                              return v ? String(v).trim() : null;
+                          }
+                      }
+                      return null;
+                  };
                   const uniqueGroupsSet = new Set();
                   const monthsSet = new Set();
                   const processed = rawData.map(row => {
@@ -1302,8 +1306,7 @@
                       const amount = parseAmount(row['Amount']);
                       const id = String(row['ID'] || '').trim();
                       const group = String(row['Group'] || '').trim();
-                      const orgValue = orgKey ? row[orgKey] : null;
-                      const cleanOrgValue = orgValue ? String(orgValue).trim() : null;
+                      const cleanOrgValue = findOrgValue(row);
                       if (group && group !== 'undefined') uniqueGroupsSet.add(group);
                       if (month) monthsSet.add(month);
                       return { row, month, amount, id, group, cleanOrgValue };
@@ -1480,10 +1483,23 @@
                       for(let i=0; i<assumptions.increments.length; i++) {
                           const inc = assumptions.increments[i];
                           if (fm >= inc.startMonth) {
-                              const info = empInfoMap[inc.id] || { 'Name': `New Hire (${inc.id})`, 'ID': inc.id, 'Department name': 'TBD / New Hires' };
-                              // Pull org number from the employee's actual payroll row so faculty mapping works
-                              const orgVal = info['Org. #'] || null;
-                              combinedData.push({ month: fm, amount: parseFloat(inc.amount), id: inc.id, row: info, cleanOrgValue: orgVal ? String(orgVal).trim() : null, __Scenario: '4. Flat Increments' });
+                              // Look up the employee's full payroll row to get org, faculty, dept etc.
+                              const info = empInfoMap[inc.id] || {};
+                              // Try every possible key name for org number
+                              const orgVal = info['Org. #'] || info['Org.#'] || info['Org #'] || info['org_number'] || null;
+                              const row = {
+                                  ...info,
+                                  'ID':   inc.id,
+                                  'Name': info['Name'] || inc.id,
+                              };
+                              combinedData.push({
+                                  month: fm,
+                                  amount: parseFloat(inc.amount),
+                                  id: inc.id,
+                                  row,
+                                  cleanOrgValue: orgVal ? String(orgVal).trim() : null,
+                                  __Scenario: '4. Flat Increments'
+                              });
                           }
                       }
                   }
