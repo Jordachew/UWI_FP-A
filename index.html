@@ -617,6 +617,31 @@
           { label: 'Sal Plan Only', keys: ['Sal Plan'] }
         ];
 
+        // ─── Shared CSV export utility ───────────────────────────────────────
+        function exportCSV(filename, headers, rows) {
+          const escape = v => {
+            const s = v == null ? '' : String(v);
+            return s.includes(',') || s.includes('"') || s.includes('\n')
+              ? `"${s.replace(/"/g, '""')}"` : s;
+          };
+          const csv = [headers, ...rows].map(r => r.map(escape).join(',')).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url  = URL.createObjectURL(blob);
+          const a    = document.createElement('a');
+          a.href = url; a.download = filename; a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        function ExportBtn({ onClick }) {
+          return (
+            <button onClick={onClick}
+              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 border border-emerald-300 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold transition-colors">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+          );
+        }
+
         // ─── TAB COMPONENTS (hooks-safe, defined outside App) ───────────────
 
         function Top100Tab({ dataModel, processedDataCache, mappingData }) {
@@ -656,6 +681,11 @@
                     <p className="text-xs text-gray-400 mt-0.5">Base month: <b>{formatMonthLabel(baseMonth)}</b> · {filtered.length} employees · {formatCurrency(totalShown)} of {formatCurrency(grandTotal)} ({grandTotal > 0 ? ((totalShown/grandTotal)*100).toFixed(1) : 0}%)</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <ExportBtn onClick={() => exportCSV(
+                      `top100_earners_${baseMonth}.csv`,
+                      ['Rank','ID','Name','Faculty','Department','Group','Position','Monthly Cost','% of Total'],
+                      filtered.map((e,i) => [i+1, e.id, e.name, e.faculty, e.dept, e.group, e.position, e.amount.toFixed(2), (grandTotal>0?(e.amount/grandTotal*100):0).toFixed(2)+'%'])
+                    )} />
                     <input placeholder="Search name / ID..." value={search} onChange={e => setSearch(e.target.value)} className={sel + " w-44"} />
                     <select value={faculty} onChange={e => { setFaculty(e.target.value); setDept(''); }} className={sel}><option value="">All Faculties</option>{faculties.map(f => <option key={f}>{f}</option>)}</select>
                     <select value={dept} onChange={e => setDept(e.target.value)} className={sel}><option value="">All Departments</option>{departments.map(d => <option key={d}>{d}</option>)}</select>
@@ -741,7 +771,14 @@
                 </div>
               </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-base font-bold text-gray-800 mb-3">Monthly Detail</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-bold text-gray-800">Monthly Detail</h3>
+                  <ExportBtn onClick={() => exportCSV(
+                    'hc_movement.csv',
+                    ['Month','Type','Prior HC','New HC','Joiners','Leavers','Net Change','Status'],
+                    movementData.map(r => [r.label, r.isForecast?'Forecast':'Actual', r.prevHC, r.currHC, r.joiners, r.leavers, r.net, r.net>0?'Growing':r.net<0?'Shrinking':'Stable'])
+                  )} />
+                </div>
                 <table className="w-full text-xs border-collapse">
                   <thead className="bg-gray-50"><tr>{['Month','Prior HC','New HC','Joiners','Leavers','Net Change','Status'].map(h=><th key={h} className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200">{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-gray-100">
@@ -804,9 +841,16 @@
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div><h3 className="text-lg font-bold text-gray-800">🏛️ Cost by Faculty</h3><p className="text-xs text-gray-400">Payroll distribution across faculties</p></div>
-                  <select value={cfMonth} onChange={e=>setCfMonth(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">
-                    {allMonths.map(m=><option key={m} value={m}>{formatMonthLabel(m)}</option>)}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <ExportBtn onClick={() => exportCSV(
+                      `cost_by_faculty_${cfMonth}.csv`,
+                      ['Faculty','Headcount','Total Cost','% of Total'],
+                      facultyData.map(f => [f.faculty, f.hc, f.amount.toFixed(2), f.pct.toFixed(2)+'%'])
+                    )} />
+                    <select value={cfMonth} onChange={e=>setCfMonth(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">
+                      {allMonths.map(m=><option key={m} value={m}>{formatMonthLabel(m)}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   {facultyData.map((f,i) => (
@@ -872,10 +916,17 @@
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div><h3 className="text-lg font-bold text-gray-800">💰 FTE Cost Rate</h3><p className="text-xs text-gray-400">Average monthly cost per employee — base month: {formatMonthLabel(dataModel.baseMonth)}</p></div>
-                  <div className="bg-gray-100 p-1 rounded-lg inline-flex gap-1">
-                    {[['faculty','Faculty'],['dept','Department'],['group','Group'],['position','Position']].map(([val,label])=>(
-                      <button key={val} onClick={()=>setFteFilter(val)} className={`px-3 py-1 rounded-md text-xs font-semibold ${fteFilter===val?'bg-white shadow text-blue-700':'text-gray-500 hover:text-gray-700'}`}>{label}</button>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <ExportBtn onClick={() => exportCSV(
+                      `fte_cost_${dataModel.baseMonth}.csv`,
+                      [fteFilter.charAt(0).toUpperCase()+fteFilter.slice(1),'Headcount','Total Cost','Avg Cost/FTE'],
+                      fteData.map(r => [r.key, r.hc, r.amount.toFixed(2), r.avgCost.toFixed(2)])
+                    )} />
+                    <div className="bg-gray-100 p-1 rounded-lg inline-flex gap-1">
+                      {[['faculty','Faculty'],['dept','Department'],['group','Group'],['position','Position']].map(([val,label])=>(
+                        <button key={val} onClick={()=>setFteFilter(val)} className={`px-3 py-1 rounded-md text-xs font-semibold ${fteFilter===val?'bg-white shadow text-blue-700':'text-gray-500 hover:text-gray-700'}`}>{label}</button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -932,7 +983,12 @@
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div><h3 className="text-lg font-bold text-gray-800">📈 Salary Band Distribution</h3><p className="text-xs text-gray-400">Employee count by monthly pay range — base month: {formatMonthLabel(dataModel.baseMonth)} · {formatCount(filtered.length)} employees</p></div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <ExportBtn onClick={() => exportCSV(
+                      `salary_bands_${dataModel.baseMonth}.csv`,
+                      ['Band','Employee Count','% of Total','Total Cost'],
+                      bandCounts.map(b => [b.label, b.count, filtered.length>0?((b.count/filtered.length)*100).toFixed(1)+'%':'0%', b.total.toFixed(2)])
+                    )} />
                     <select value={sbFaculty} onChange={e=>setSbFaculty(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white"><option value="">All Faculties</option>{faculties.map(f=><option key={f}>{f}</option>)}</select>
                     <select value={sbGroup}   onChange={e=>setSbGroup(e.target.value)}   className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white"><option value="">All Groups</option>{groups.map(g=><option key={g}>{g}</option>)}</select>
                   </div>
@@ -980,7 +1036,14 @@
           return (
             <div className="p-6 overflow-y-auto flex-grow bg-gray-50/50 space-y-6">
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-1">🤝 Union Group Cost Trends</h3>
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-lg font-bold text-gray-800">🤝 Union Group Cost Trends</h3>
+                  <ExportBtn onClick={() => exportCSV(
+                    'union_group_trends.csv',
+                    ['Month','Type', ...groups, 'Total'],
+                    trendRows.map(r => [r.label, r.isForecast?'Forecast':'Actual', ...groups.map(g => (r[g]||0).toFixed(2)), groups.reduce((s,g)=>s+(r[g]||0),0).toFixed(2)])
+                  )} />
+                </div>
                 <p className="text-xs text-gray-400 mb-5">Monthly payroll cost per union/staff group over time</p>
                 <div className="overflow-x-auto">
                   <div className="flex items-end gap-3 min-w-max pb-2" style={{height:'220px'}}>
@@ -1037,7 +1100,28 @@
           return (
             <div className="p-6 overflow-y-auto flex-grow bg-gray-50/50 space-y-6">
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-1">🎛️ Forecast Sensitivity — Union Increase Scenarios</h3>
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-lg font-bold text-gray-800">🎛️ Forecast Sensitivity — Union Increase Scenarios</h3>
+                  <ExportBtn onClick={() => exportCSV(
+                    'sensitivity_analysis.csv',
+                    ['Month','Base','Low ('+sens.low+'%)','Mid ('+sens.mid+'%)','High ('+sens.high+'%)'],
+                    [
+                      ...dataModel.forecastMonths.slice(0,14).map(m => [
+                        formatMonthLabel(m),
+                        baseMonthlyCost.toFixed(2),
+                        (baseMonthlyCost*(1+sens.low/100)).toFixed(2),
+                        (baseMonthlyCost*(1+sens.mid/100)).toFixed(2),
+                        (baseMonthlyCost*(1+sens.high/100)).toFixed(2),
+                      ]),
+                      ['Annual Total',
+                        (baseMonthlyCost*12).toFixed(2),
+                        (baseMonthlyCost*(1+sens.low/100)*12).toFixed(2),
+                        (baseMonthlyCost*(1+sens.mid/100)*12).toFixed(2),
+                        (baseMonthlyCost*(1+sens.high/100)*12).toFixed(2),
+                      ]
+                    ]
+                  )} />
+                </div>
                 <p className="text-xs text-gray-400 mb-6">Adjust sliders to model different union increase scenarios and see projected annual cost impact.</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   {[['low','Low','green'],['mid','Mid','blue'],['high','High','red']].map(([key,label,color]) => (
