@@ -1761,6 +1761,20 @@
           const collapseAll = () => setExpandedRows(new Set(['root']));
           const expandAll = () => {
             if (!tableTree) return;
+            let visibleRowEstimate = 0;
+            const countRows = (node) => {
+              visibleRowEstimate += 1;
+              if (visibleRowEstimate > 800) return;
+              if (node.children && Object.keys(node.children).length > 0) {
+                Object.values(node.children).forEach(countRows);
+              }
+            };
+            countRows(tableTree);
+            if (visibleRowEstimate > 800) {
+              setExpandedRows(new Set(['root']));
+              toast('Too many rows to expand at once. Narrow the search first.', 'warn');
+              return;
+            }
             const next = new Set(['root']);
             const collectExpandableRows = (node) => {
               if (node.children && Object.keys(node.children).length > 0) {
