@@ -350,7 +350,7 @@
             { assumption_type: 'filters',   data: { startMonthFilter: assumptions.startMonthFilter || '' }, updated_at: new Date().toISOString() },
           ];
           const { error } = await sb.from('assumptions').upsert(rows, { onConflict: 'assumption_type' });
-          if (error) console.error('saveAssumptions error', error);
+          if (error) { console.error('saveAssumptions error', error); throw error; }
 
           // Also sync increments to their dedicated table
           if (assumptions.increments !== undefined) {
@@ -359,18 +359,41 @@
         }
 
         async function saveIncrementsToDB(increments) {
-          // Clear and replace all increments
-          await sb.from('increments').delete().neq('id', 0);
-          if (!increments || increments.length === 0) return;
-          const records = increments.map(inc => ({
+          const records = (increments || []).map(inc => ({
             employee_id: String(inc.id || '').trim(),
             amount:      parseFloat(inc.amount) || 0,
             start_month: inc.startMonth || '',
             notes:       inc.notes || '',
           })).filter(r => r.employee_id && r.amount && r.start_month);
+
+          const { data: existingRows, error: loadError } = await sb
+            .from('increments')
+            .select('employee_id, amount, start_month, notes');
+          if (loadError) {
+            console.error('saveIncrements load error', loadError);
+            throw loadError;
+          }
+
+          const restorePreviousIncrements = async () => {
+            if (!existingRows || existingRows.length === 0) return;
+            const { error: restoreError } = await sb.from('increments').insert(existingRows);
+            if (restoreError) console.error('saveIncrements restore error', restoreError);
+          };
+
+          const { error: deleteError } = await sb.from('increments').delete().neq('id', 0);
+          if (deleteError) {
+            console.error('saveIncrements delete error', deleteError);
+            throw deleteError;
+          }
+
           if (records.length === 0) return;
-          const { error } = await sb.from('increments').insert(records);
-          if (error) console.error('saveIncrements error', error);
+
+          const { error: insertError } = await sb.from('increments').insert(records);
+          if (insertError) {
+            console.error('saveIncrements insert error', insertError);
+            await restorePreviousIncrements();
+            throw insertError;
+          }
         }
 
         async function clearAllDB() {
@@ -393,7 +416,6 @@
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
             script.onload = () => resolve(window.XLSX);
             script.onerror = () => {
-              toast("Excel parser failed to load. Check your internet connection.", "error");
               reject(new Error("CDN Load Failed"));
             };
             document.head.appendChild(script);
@@ -407,7 +429,6 @@
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
             script.onload = () => resolve(window.JSZip);
             script.onerror = () => {
-              toast("JSZip failed to load. Check your internet connection.", "error");
               reject(new Error("CDN Load Failed"));
             };
             document.head.appendChild(script);
@@ -1218,6 +1239,8 @@
           const [viewMode, setViewMode] = useState('actuals'); 
           const [timeGrouping, setTimeGrouping] = useState('month');
           const [hierarchyIndex, setHierarchyIndex] = useState(2); // Default to standard Faculty view
+          const [reportSearch, setReportSearch] = useState('');
+          const [debouncedReportSearch, setDebouncedReportSearch] = useState('');
           
           const [dashboardMonth, setDashboardMonth] = useState('');
           
@@ -1268,11 +1291,26 @@
               const XLSX = await loadExcelParser();
               const reader = new FileReader();
               reader.onload = (evt) => {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const parsed = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: "" }); 
-                onComplete(parsed);
+                try {
+                  const data = new Uint8Array(evt.target.result);
+                  const workbook = XLSX.read(data, {type: 'array'});
+                  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                  if (!worksheet) throw new Error("No worksheet found in file.");
+                  const parsed = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: "" }); 
+                  onComplete(parsed);
+                } catch (err) {
+                  console.error(err);
+                  toast("Error parsing file: " + err.message, "error");
+                  setIsProcessing(false);
+                }
+              };
+              reader.onerror = () => {
+                toast("Error reading file. Please try again.", "error");
+                setIsProcessing(false);
+              };
+              reader.onabort = () => {
+                toast("File read was cancelled.", "warn");
+                setIsProcessing(false);
               };
               reader.readAsArrayBuffer(actualFile);
             } catch (e) {
@@ -1363,9 +1401,25 @@
           };
 
           const saveAssumptionsState = async (newAssumptions) => {
+              const previousAssumptions = assumptions;
               setAssumptions(newAssumptions);
-              await saveAssumptionsToDB(newAssumptions);
+              try {
+                await saveAssumptionsToDB(newAssumptions);
+              } catch (err) {
+                console.error('saveAssumptionsState error', err);
+                setAssumptions(previousAssumptions);
+                toast('Could not save assumptions. Changes were reverted.', 'error');
+              }
           };
+
+          useEffect(() => {
+            const handle = setTimeout(() => setDebouncedReportSearch(reportSearch), 300);
+            return () => clearTimeout(handle);
+          }, [reportSearch]);
+
+          useEffect(() => {
+            setExpandedRows(new Set(['root']));
+          }, [debouncedReportSearch]);
 
           // --- Step 2: Hydration Phase (Pre-Processing) ---
           useEffect(() => {
@@ -1422,7 +1476,10 @@
                           id: Date.now() + Math.random()
                       }));
                       const newAssumptions = { ...prev, union: autoRules };
-                      saveAssumptionsToDB(newAssumptions);
+                      saveAssumptionsToDB(newAssumptions).catch(err => {
+                          console.error('auto union save failed', err);
+                          toast('Auto-created union rules could not be saved.', 'error');
+                      });
                       return newAssumptions;
                   }
                   return prev;
@@ -1474,6 +1531,80 @@
               }
               return list;
           }, [processedDataCache, assumptions.startMonthFilter]);
+
+          const buildHierarchyTree = useCallback((sourceData, actualMonths = [], forecastMonths = []) => {
+              const allTimelineMonths = [...actualMonths, ...forecastMonths];
+              const monthLabelCache = {};
+              allTimelineMonths.forEach(m => {
+                  const isFcst = forecastMonths.includes(m);
+                  monthLabelCache[m] = `${formatMonthLabel(m)} ${isFcst ? '[FORECAST]' : '[ACTUAL]'}`;
+              });
+
+              const orgCache = {};
+              const presetKeys = HIERARCHY_PRESETS[hierarchyIndex].keys;
+              const tree = { id: 'root', name: 'Total UWI Mona', level: 0, children: {}, amounts: {}, empIds: {} };
+
+              for (let i=0; i < sourceData.length; i++) {
+                  const item = sourceData[i];
+                  const { month, amount, id, row, cleanOrgValue } = item;
+                  
+                  let currentNode = tree;
+                  currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
+                  if (id && id !== 'undefined') {
+                      if (!currentNode.empIds[month]) currentNode.empIds[month] = new Set();
+                      currentNode.empIds[month].add(id);
+                  }
+
+                  let currentId = 'root';
+                  let mappedFac = row['Mapped Faculty'];
+                  let mappedDept = row['Mapped Department'];
+
+                  if ((!mappedFac || !mappedDept) && cleanOrgValue) {
+                      if (orgCache[cleanOrgValue] === undefined) {
+                          const mappedInfo = mappingData && mappingData[cleanOrgValue];
+                          orgCache[cleanOrgValue] = {
+                              faculty: (mappedInfo && mappedInfo.faculty) ? mappedInfo.faculty : getFacultyFromOrg(cleanOrgValue),
+                              dept: (mappedInfo && mappedInfo.dept) ? mappedInfo.dept : null
+                          };
+                      }
+                      const cache = orgCache[cleanOrgValue];
+                      if (!mappedFac) mappedFac = cache.faculty;
+                      if (!mappedDept) mappedDept = cache.dept || (row['Department name'] || row['Department'] || row['Descr_1']);
+                  } else if (!mappedDept) {
+                      mappedDept = (row['Department name'] || row['Department'] || row['Descr_1']);
+                  }
+
+                  for (let k=0; k < presetKeys.length; k++) {
+                    const key = presetKeys[k];
+                    let val;
+                    
+                    if (key === '__Month') val = monthLabelCache[month];
+                    else if (key === '__Scenario') val = item.__Scenario || 'Uncategorized';
+                    else if (key === 'Mapped Faculty') val = mappedFac;
+                    else if (key === 'Mapped Department') val = mappedDept;
+                    else if (key === 'Acct. Description') val = row['Acct. Description'] || row['Account'] || row['__EMPTY'] || row['Descr'];
+                    else if (key === 'Posn Desc') val = row['Posn Desc'] || row['Position'];
+                    else if (key === 'Account #') val = row['Account #'] || row['Account Number'] || row['AccountNum'];
+                    else val = row[key];
+                    
+                    val = val ? String(val).trim() : `Unknown ${key}`;
+                    currentId += `|${val}`;
+                    
+                    if (!currentNode.children[val]) {
+                      currentNode.children[val] = { id: currentId, name: val, level: k + 1, children: {}, amounts: {}, empIds: {} };
+                    }
+                    currentNode = currentNode.children[val];
+                    
+                    currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
+                    if (id && id !== 'undefined') {
+                        if (!currentNode.empIds[month]) currentNode.empIds[month] = new Set();
+                        currentNode.empIds[month].add(id);
+                    }
+                  }
+              }
+
+              return tree;
+          }, [hierarchyIndex, mappingData]);
 
           // --- Step 3: Core Engine Build ---
           useEffect(() => {
@@ -1610,82 +1741,14 @@
                   }
               });
 
-              // Pre-compute Labels & Hierarchy Fast Lookups
-              const monthLabelCache = {};
-              allTimelineMonths.forEach(m => {
-                  const isFcst = forecastMonths.includes(m);
-                  monthLabelCache[m] = `${formatMonthLabel(m)} ${isFcst ? '[FORECAST]' : '[ACTUAL]'}`;
-              });
+              const tree = buildHierarchyTree(combinedData, actualMonths, forecastMonths);
 
-              const orgCache = {};
-              const presetKeys = HIERARCHY_PRESETS[hierarchyIndex].keys;
-              const tree = { id: 'root', name: 'Total UWI Mona', level: 0, children: {}, amounts: {}, empIds: {} };
-
-              for (let i=0; i < combinedData.length; i++) {
-                  const item = combinedData[i];
-                  const { month, amount, id, row, cleanOrgValue } = item;
-                  
-                  let currentNode = tree;
-                  currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
-                  if (id && id !== 'undefined') {
-                      if (!currentNode.empIds[month]) currentNode.empIds[month] = new Set();
-                      currentNode.empIds[month].add(id);
-                  }
-
-                  let currentId = 'root';
-                  let mappedFac = row['Mapped Faculty'];
-                  let mappedDept = row['Mapped Department'];
-
-                  if ((!mappedFac || !mappedDept) && cleanOrgValue) {
-                      if (orgCache[cleanOrgValue] === undefined) {
-                          const mappedInfo = mappingData && mappingData[cleanOrgValue];
-                          orgCache[cleanOrgValue] = {
-                              faculty: (mappedInfo && mappedInfo.faculty) ? mappedInfo.faculty : getFacultyFromOrg(cleanOrgValue),
-                              dept: (mappedInfo && mappedInfo.dept) ? mappedInfo.dept : null
-                          };
-                      }
-                      const cache = orgCache[cleanOrgValue];
-                      if (!mappedFac) mappedFac = cache.faculty;
-                      if (!mappedDept) mappedDept = cache.dept || (row['Department name'] || row['Department'] || row['Descr_1']);
-                  } else if (!mappedDept) {
-                      mappedDept = (row['Department name'] || row['Department'] || row['Descr_1']);
-                  }
-
-                  for (let k=0; k < presetKeys.length; k++) {
-                    const key = presetKeys[k];
-                    let val;
-                    
-                    if (key === '__Month') val = monthLabelCache[month];
-                    else if (key === '__Scenario') val = item.__Scenario || 'Uncategorized';
-                    else if (key === 'Mapped Faculty') val = mappedFac;
-                    else if (key === 'Mapped Department') val = mappedDept;
-                    else if (key === 'Acct. Description') val = row['Acct. Description'] || row['Account'] || row['__EMPTY'] || row['Descr'];
-                    else if (key === 'Posn Desc') val = row['Posn Desc'] || row['Position'];
-                    else if (key === 'Account #') val = row['Account #'] || row['Account Number'] || row['AccountNum'];
-                    else val = row[key];
-                    
-                    val = val ? String(val).trim() : `Unknown ${key}`;
-                    currentId += `|${val}`;
-                    
-                    if (!currentNode.children[val]) {
-                      currentNode.children[val] = { id: currentId, name: val, level: k + 1, children: {}, amounts: {}, empIds: {} };
-                    }
-                    currentNode = currentNode.children[val];
-                    
-                    currentNode.amounts[month] = (currentNode.amounts[month] || 0) + amount;
-                    if (id && id !== 'undefined') {
-                        if (!currentNode.empIds[month]) currentNode.empIds[month] = new Set();
-                        currentNode.empIds[month].add(id);
-                    }
-                  }
-              }
-
-              setDataModel({ tree, actualMonths, forecastMonths, baseMonth });
+              setDataModel({ tree, combinedData, actualMonths, forecastMonths, baseMonth });
               if (!dashboardMonth || dashboardMonth < (assumptions.startMonthFilter||'')) setDashboardMonth(baseMonth);
               setExpandedRows(new Set(['root']));
               setIsProcessing(false);
             }, 0);
-          }, [processedDataCache, assumptions, mappingData, hierarchyIndex, scenarioFilters]);
+          }, [processedDataCache, assumptions, mappingData, hierarchyIndex, scenarioFilters, buildHierarchyTree]);
 
           const toggleRow = (id) => {
             setExpandedRows(prev => {
@@ -1696,6 +1759,18 @@
           };
 
           const collapseAll = () => setExpandedRows(new Set(['root']));
+          const expandAll = () => {
+            if (!tableTree) return;
+            const next = new Set(['root']);
+            const collectExpandableRows = (node) => {
+              if (node.children && Object.keys(node.children).length > 0) {
+                next.add(node.id);
+                Object.values(node.children).forEach(collectExpandableRows);
+              }
+            };
+            collectExpandableRows(tableTree);
+            setExpandedRows(next);
+          };
 
           useEffect(() => {
               if (dataModel && dashboardMonth) {
@@ -1884,8 +1959,21 @@
             );
           }, [metric, viewMode, getMetricValue]);
 
+          const tableTree = useMemo(() => {
+            if (!dataModel) return null;
+            const normalizedReportSearch = debouncedReportSearch.trim().toLowerCase();
+            if (normalizedReportSearch.length < 2) return dataModel.tree;
+            const filteredData = (dataModel.combinedData || []).filter(item => {
+              const row = item.row || {};
+              const itemId = String(item.id || row['ID'] || '').toLowerCase();
+              const itemName = String(row['Name'] || row['Employee Name'] || '').toLowerCase();
+              return itemId.includes(normalizedReportSearch) || itemName.includes(normalizedReportSearch);
+            });
+            return buildHierarchyTree(filteredData, dataModel.actualMonths, dataModel.forecastMonths);
+          }, [dataModel, debouncedReportSearch, buildHierarchyTree]);
+
           const flatRows = useMemo(() => {
-            if (!dataModel) return [];
+            if (!tableTree) return [];
             const rows = [];
             const flatten = (node) => {
               rows.push(node);
@@ -1895,9 +1983,9 @@
                   .forEach(flatten);
               }
             };
-            flatten(dataModel.tree);
+            flatten(tableTree);
             return rows;
-          }, [dataModel, expandedRows]);
+          }, [tableTree, expandedRows]);
 
           const dashboardStats = useMemo(() => {
             if (!dataModel || !dashboardMonth) return null;
@@ -2396,7 +2484,7 @@
                     ['sensitivity', '🎛️', 'Sensitivity'],
                     ['admin',       '⚙️', 'Admin'],
                   ].map(([tab, icon, label]) => (
-                    <button key={tab} onClick={() => setActiveTab(tab)}
+                    <button key={tab} onClick={() => { setActiveTab(tab); if (tab !== 'table' && reportSearch) setReportSearch(''); }}
                       className={`pb-3 px-3 font-semibold text-xs whitespace-nowrap border-b-2 transition-colors ${activeTab === tab ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
                       {icon} {label}
                     </button>
@@ -2421,8 +2509,16 @@
                                 <button onClick={() => setViewMode('actuals')} className={`px-3 py-1 rounded-md font-medium text-xs ${viewMode === 'actuals' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}>View Actuals</button>
                                 <button onClick={() => setViewMode('variance')} className={`px-3 py-1 rounded-md font-medium text-xs ${viewMode === 'variance' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}>View Variance</button>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap justify-end gap-2">
+                                <input
+                                  type="search"
+                                  value={reportSearch}
+                                  onChange={(e) => setReportSearch(e.target.value)}
+                                  placeholder="Search ID or name (2+ chars)..."
+                                  className="w-52 px-3 py-1.5 border border-gray-300 rounded-md bg-white text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                                />
                                 <button onClick={collapseAll} className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-xs shadow-sm">Collapse All</button>
+                                <button onClick={expandAll} className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-xs shadow-sm">Expand All</button>
                                 <button onClick={exportToExcel} className="px-3 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-md bg-white text-xs shadow-sm flex items-center"><ExcelIcon /> Export to Excel</button>
                             </div>
                         </div>
