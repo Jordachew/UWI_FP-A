@@ -287,20 +287,26 @@
         // --- Org Mapping ---
 
         async function loadPositionMapFromDB() {
-          // Raw fetch to bypass PostgREST 1000-row default limit
-          const res = await fetch(
-            `${SUPABASE_URL}/rest/v1/position_mapping?select=position_number,position_desc&limit=3000`,
-            { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-          );
-          if (!res.ok) return { byNumber: {}, byDesc: {} };
-          const data = await res.json();
-          if (!Array.isArray(data) || data.length === 0) return { byNumber: {}, byDesc: {} };
+          // Paginate in chunks of 1000 to bypass PostgREST max_rows server cap
           const byNumber = {}, byDesc = {};
-          data.forEach(r => {
-            byNumber[r.position_number] = r.position_desc;
-            byDesc[r.position_desc]     = r.position_number;
-          });
-          console.log(`✓ Loaded ${data.length} positions`);
+          let offset = 0;
+          const PAGE = 1000;
+          while (true) {
+            const res = await fetch(
+              `${SUPABASE_URL}/rest/v1/position_mapping?select=position_number,position_desc&limit=${PAGE}&offset=${offset}`,
+              { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+            );
+            if (!res.ok) break;
+            const page = await res.json();
+            if (!Array.isArray(page) || page.length === 0) break;
+            page.forEach(r => {
+              byNumber[r.position_number] = r.position_desc;
+              byDesc[r.position_desc]     = r.position_number;
+            });
+            if (page.length < PAGE) break; // last page
+            offset += PAGE;
+          }
+          console.log(`✓ Loaded ${Object.keys(byNumber).length} positions`);
           return { byNumber, byDesc };
         }
 
