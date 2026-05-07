@@ -2190,9 +2190,12 @@
             if (normalizedReportSearch.length < 2) return dataModel.tree;
             const filteredData = (dataModel.combinedData || []).filter(item => {
               const row = item.row || {};
-              const itemId = String(item.id || row['ID'] || '').toLowerCase();
-              const itemName = String(row['Name'] || row['Employee Name'] || '').toLowerCase();
-              return itemId.includes(normalizedReportSearch) || itemName.includes(normalizedReportSearch);
+              const itemId       = String(item.id || row['ID'] || '').toLowerCase();
+              const itemName     = String(row['Name'] || row['Employee Name'] || '').toLowerCase();
+              const itemPosition = String(row['Posn Desc'] || row['Position'] || '').toLowerCase();
+              return itemId.includes(normalizedReportSearch)
+                  || itemName.includes(normalizedReportSearch)
+                  || itemPosition.includes(normalizedReportSearch);
             });
             return buildHierarchyTree(filteredData, dataModel.actualMonths, dataModel.forecastMonths);
           }, [dataModel, debouncedReportSearch, buildHierarchyTree]);
@@ -2739,7 +2742,7 @@
                                   type="search"
                                   value={reportSearch}
                                   onChange={(e) => setReportSearch(e.target.value)}
-                                  placeholder="Search ID or name (2+ chars)..."
+                                  placeholder="Search ID, name or position..."
                                   className="w-52 px-3 py-1.5 border border-gray-300 rounded-md bg-white text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
                                 />
                                 <button onClick={collapseAll} className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-xs shadow-sm">Collapse All</button>
