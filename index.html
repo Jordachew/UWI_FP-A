@@ -249,7 +249,8 @@
               org_number:      orgKey ? String(row[orgKey]).trim() : null,
               account_number:  String(row['Account #'] || row['Account Number'] || '').trim() || null,
               account_desc:    String(row['Acct. Description'] || row['Account'] || '').trim() || null,
-              position_desc:   String(row['Posn Desc'] || row['Position'] || '').trim() || null,
+              position_desc:   String(row['Posn Desc'] || '').trim() || null,
+              position_number: String(row['Position'] || '').trim() || null,
               department_name: String(row['Department name'] || row['Department'] || row['Descr_1'] || '').trim() || null,
               sal_plan:        String(row['Sal Plan'] || '').trim() || null,
               // raw_row intentionally omitted - structured columns are sufficient
@@ -286,19 +287,25 @@
         // --- Org Mapping ---
 
         async function loadPositionMapFromDB() {
-          // Returns map of position_number -> position_desc
+          // Returns TWO maps:
+          //   byNumber: { '00100033': 'Lecturer' }   (number -> name, for future use)
+          //   byDesc:   { 'Lecturer': '00100033' }   (name -> number, for current DB data)
           const { data, error } = await sb.from('position_mapping').select('position_number, position_desc');
-          if (error || !data || data.length === 0) return {};
-          const map = {};
-          data.forEach(r => { map[r.position_number] = r.position_desc; });
-          return map;
+          if (error || !data || data.length === 0) return { byNumber: {}, byDesc: {} };
+          const byNumber = {}, byDesc = {};
+          data.forEach(r => {
+            byNumber[r.position_number] = r.position_desc;
+            byDesc[r.position_desc]     = r.position_number;
+          });
+          return { byNumber, byDesc };
         }
 
         async function ensurePositionTableSeeded() {
-          // Check if table has data; if empty seed from POSITION_SEED
+          // Check if table exists and has data; seed from POSITION_SEED if empty
           const { data, error } = await sb.from('position_mapping').select('position_number').limit(1);
           if (error) {
-            console.warn('position_mapping table not available:', error.message);
+            // Table doesn't exist yet — needs to be created via Supabase SQL editor
+            console.warn('position_mapping table not found. Create it in Supabase SQL editor first.');
             return;
           }
           if (data && data.length > 0) return; // already seeded
@@ -311,7 +318,9 @@
             }));
             await sb.from('position_mapping').upsert(batch, { onConflict: 'position_number' });
           }
-          console.log('Position mapping seeded:', POSITION_SEED.length, 'rows');
+          console.log('✓ Position mapping seeded:', POSITION_SEED.length, 'rows');
+          // Reload the position map after seeding
+          return await loadPositionMapFromDB();
         }
 
         async function savePositionToDB(positionNumber, positionDesc) {
@@ -1253,6 +1262,139 @@
 
         // ─── END TAB COMPONENTS ────────────────────────────────────────────
 
+        // ─── Position Admin Panel (must be a proper component — hooks rules) ──
+        function PositionAdminPanel({ positionMap, setPositionMap }) {
+          const [posSearch, setPosSearch]   = useState('');
+          const [editRow, setEditRow]       = useState(null);
+          const [newRow, setNewRow]         = useState({ position_number: '', position_desc: '' });
+          const [posLoading, setPosLoading] = useState(false);
+          const toast = useToast();
+
+          const allPositions = useMemo(() =>
+            Object.entries(positionMap.byNumber || {}).map(([pn, pd]) => ({ pn, pd })).sort((a,b) => a.pn.localeCompare(b.pn)),
+          [positionMap]);
+
+          const filtered = useMemo(() => posSearch
+            ? allPositions.filter(p => p.pn.includes(posSearch) || p.pd.toLowerCase().includes(posSearch.toLowerCase()))
+            : allPositions,
+          [allPositions, posSearch]);
+
+          const handleSave = async (pn, pd) => {
+            if (!pn.trim() || !pd.trim()) return;
+            setPosLoading(true);
+            try {
+              await savePositionToDB(pn.trim(), pd.trim());
+              setPositionMap(prev => ({
+                byNumber: { ...prev.byNumber, [pn.trim()]: pd.trim() },
+                byDesc:   { ...prev.byDesc,   [pd.trim()]: pn.trim() },
+              }));
+              setEditRow(null);
+              setNewRow({ position_number: '', position_desc: '' });
+              toast('Position saved', 'success');
+            } catch(e) { toast('Save failed: ' + e.message, 'error'); }
+            setPosLoading(false);
+          };
+
+          const handleDelete = async (pn) => {
+            setPosLoading(true);
+            try {
+              await deletePositionFromDB(pn);
+              setPositionMap(prev => {
+                const byNumber = {...prev.byNumber}; delete byNumber[pn];
+                const byDesc   = {...prev.byDesc};   delete byDesc[prev.byNumber[pn]];
+                return { byNumber, byDesc };
+              });
+              toast('Position deleted', 'success');
+            } catch(e) { toast('Delete failed: ' + e.message, 'error'); }
+            setPosLoading(false);
+          };
+
+          return (
+            <div className="max-w-3xl">
+              <h2 className="text-2xl font-bold mb-1">Position Master Data</h2>
+              <p className="text-gray-500 text-sm mb-4">
+                {allPositions.length} positions loaded. Displayed as <span className="font-mono bg-gray-100 px-1 rounded text-xs">00100033 — Lecturer</span> throughout the app.
+              </p>
+
+              {/* Add new */}
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-5">
+                <h3 className="text-sm font-bold text-indigo-800 mb-3">Add New Position</h3>
+                <div className="flex gap-2">
+                  <input value={newRow.position_number} onChange={e => setNewRow(p => ({...p, position_number: e.target.value}))}
+                    placeholder="Position number (e.g. 00100999)"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-xs w-44 focus:border-indigo-400 focus:outline-none font-mono" />
+                  <input value={newRow.position_desc} onChange={e => setNewRow(p => ({...p, position_desc: e.target.value}))}
+                    placeholder="Position description"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-xs flex-1 focus:border-indigo-400 focus:outline-none" />
+                  <button onClick={() => handleSave(newRow.position_number, newRow.position_desc)}
+                    disabled={posLoading || !newRow.position_number || !newRow.position_desc}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-lg">
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Search */}
+              <input value={posSearch} onChange={e => setPosSearch(e.target.value)}
+                placeholder="Search by number or description..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs mb-3 focus:border-blue-400 focus:outline-none" />
+
+              {/* Table */}
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                  <span className="text-xs font-semibold text-gray-600">
+                    {filtered.length} of {allPositions.length} positions{posSearch && ` matching "${posSearch}"`}
+                  </span>
+                  {posLoading && <span className="text-xs text-indigo-600 font-semibold animate-pulse">Saving...</span>}
+                </div>
+                <div className="overflow-y-auto max-h-[480px]">
+                  <table className="w-full text-xs border-collapse">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200 w-36">Position No.</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200">Description</th>
+                        <th className="px-3 py-2 border-b border-gray-200 w-24"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filtered.map(({ pn, pd }) => (
+                        <tr key={pn} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-mono text-gray-500">{pn}</td>
+                          <td className="px-3 py-2">
+                            {editRow?.pn === pn ? (
+                              <input autoFocus value={editRow.pd}
+                                onChange={e => setEditRow(r => ({...r, pd: e.target.value}))}
+                                onKeyDown={e => { if(e.key==='Enter') handleSave(pn, editRow.pd); if(e.key==='Escape') setEditRow(null); }}
+                                className="border border-indigo-400 rounded px-2 py-1 w-full text-xs focus:outline-none" />
+                            ) : (
+                              <span>{pn} — {pd}</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex gap-1">
+                              {editRow?.pn === pn ? (
+                                <>
+                                  <button onClick={() => handleSave(pn, editRow.pd)} className="text-green-600 hover:text-green-800 font-bold text-[10px] px-1.5 py-0.5 border border-green-300 rounded">Save</button>
+                                  <button onClick={() => setEditRow(null)} className="text-gray-500 text-[10px] px-1.5 py-0.5 border border-gray-300 rounded">✕</button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => setEditRow({ pn, pd })} className="text-blue-500 hover:text-blue-700 text-[10px] px-1.5 py-0.5 border border-blue-200 rounded">Edit</button>
+                                  <button onClick={() => handleDelete(pn)} className="text-red-400 hover:text-red-600 text-[10px] px-1.5 py-0.5 border border-red-200 rounded">Del</button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
         function App() {
           const toast = useToast();
           const [rawData, setRawData] = useState(null);
@@ -1261,7 +1403,7 @@
           const [processedDataCache, setProcessedDataCache] = useState(null);
           
           const [mappingData, setMappingData] = useState(null);
-          const [positionMap, setPositionMap] = useState({});
+          const [positionMap, setPositionMap] = useState({ byNumber: {}, byDesc: {} });
           const [isProcessing, setIsProcessing] = useState(true);
 
           // Derived from processedDataCache — used throughout render
@@ -1380,7 +1522,7 @@
                   loadPositionMapFromDB().catch(e => { console.warn('position map load failed', e); return {}; }),
                 ]);
                 if (tempMapping) setMappingData(tempMapping);
-                if (posMap && Object.keys(posMap).length > 0) setPositionMap(posMap);
+                if (posMap && (Object.keys(posMap.byNumber).length > 0 || Object.keys(posMap.byDesc).length > 0)) setPositionMap(posMap);
                 // Seed position table if empty (runs silently in background)
                 ensurePositionTableSeeded().catch(e => console.warn('position seed failed', e));
                 if (tempMapping) setMappingData(tempMapping);
@@ -1495,13 +1637,25 @@
                       const id           = String(row['ID'] || '').trim();
                       const group        = String(row['Group'] || '').trim();
                       const cleanOrgValue = findOrgValue(row);
-                      // Concatenate position number + name: "00100033 — Lecturer"
-                      const rawPosnNum   = String(row['Posn Desc'] || row['Position'] || '').trim();
-                      const posnName     = positionMap[rawPosnNum] || '';
-                      const resolvedPosn = rawPosnNum
-                        ? (posnName ? `${rawPosnNum} — ${posnName}` : rawPosnNum)
-                        : '';
-                      const enrichedRow  = { ...row, 'Posn Desc': resolvedPosn, '_posnNum': rawPosnNum };
+                      // Position concatenation: "00100033 — Lecturer"
+                      // Raw data may have number in 'Position' col and name in 'Posn Desc'
+                      // or just the name in 'Posn Desc' (when loaded from DB via RPC)
+                      const rawPosnDesc = String(row['Posn Desc'] || '').trim();
+                      const rawPosnNum  = String(row['Position']  || '').trim();
+                      let posnNum  = rawPosnNum;
+                      let posnName = rawPosnDesc;
+                      // If we only have the name, look up the number
+                      if (!posnNum && posnName && positionMap.byDesc[posnName]) {
+                        posnNum = positionMap.byDesc[posnName];
+                      }
+                      // If we only have the number, look up the name
+                      if (posnNum && !posnName && positionMap.byNumber[posnNum]) {
+                        posnName = positionMap.byNumber[posnNum];
+                      }
+                      const resolvedPosn = posnNum && posnName
+                        ? `${posnNum} — ${posnName}`
+                        : (posnNum || posnName || '');
+                      const enrichedRow = { ...row, 'Posn Desc': resolvedPosn, '_posnNum': posnNum };
                       if (group && group !== 'undefined') uniqueGroupsSet.add(group);
                       if (month) monthsSet.add(month);
                       return { row: enrichedRow, month, amount, id, group, cleanOrgValue };
@@ -2879,132 +3033,9 @@
                                 </div>
                             )}
 
-                            {activeAdminTab === 'positions' && (() => {
-                                const [posSearch, setPosSearch] = useState('');
-                                const [editRow, setEditRow] = useState(null); // {position_number, position_desc}
-                                const [newRow, setNewRow] = useState({ position_number: '', position_desc: '' });
-                                const [posLoading, setPosLoading] = useState(false);
-
-                                const allPositions = Object.entries(positionMap)
-                                  .map(([pn, pd]) => ({ pn, pd }))
-                                  .sort((a, b) => a.pn.localeCompare(b.pn));
-
-                                const filtered = posSearch
-                                  ? allPositions.filter(p =>
-                                      p.pn.includes(posSearch) ||
-                                      p.pd.toLowerCase().includes(posSearch.toLowerCase()))
-                                  : allPositions;
-
-                                const handleSave = async (pn, pd) => {
-                                  if (!pn.trim() || !pd.trim()) return;
-                                  setPosLoading(true);
-                                  try {
-                                    await savePositionToDB(pn.trim(), pd.trim());
-                                    setPositionMap(prev => ({ ...prev, [pn.trim()]: pd.trim() }));
-                                    setEditRow(null);
-                                    setNewRow({ position_number: '', position_desc: '' });
-                                  } catch(e) { alert('Save failed: ' + e.message); }
-                                  setPosLoading(false);
-                                };
-
-                                const handleDelete = async (pn) => {
-                                  if (!window.confirm(`Delete position ${pn}?`)) return;
-                                  setPosLoading(true);
-                                  try {
-                                    await deletePositionFromDB(pn);
-                                    setPositionMap(prev => { const n = {...prev}; delete n[pn]; return n; });
-                                  } catch(e) { alert('Delete failed: ' + e.message); }
-                                  setPosLoading(false);
-                                };
-
-                                return (
-                                <div className="max-w-3xl">
-                                  <h2 className="text-2xl font-bold mb-1">Position Master Data</h2>
-                                  <p className="text-gray-500 text-sm mb-4">
-                                    {allPositions.length} positions loaded. Position numbers are concatenated with their descriptions throughout the app (e.g. <span className="font-mono bg-gray-100 px-1 rounded">00100033 — Lecturer</span>).
-                                  </p>
-
-                                  {/* Add new row */}
-                                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-5">
-                                    <h3 className="text-sm font-bold text-indigo-800 mb-3">Add New Position</h3>
-                                    <div className="flex gap-2">
-                                      <input value={newRow.position_number} onChange={e => setNewRow(p => ({...p, position_number: e.target.value}))}
-                                        placeholder="Position number (e.g. 00100999)"
-                                        className="border border-gray-300 rounded-lg px-3 py-2 text-xs w-44 focus:border-indigo-400 focus:outline-none font-mono" />
-                                      <input value={newRow.position_desc} onChange={e => setNewRow(p => ({...p, position_desc: e.target.value}))}
-                                        placeholder="Position description"
-                                        className="border border-gray-300 rounded-lg px-3 py-2 text-xs flex-1 focus:border-indigo-400 focus:outline-none" />
-                                      <button onClick={() => handleSave(newRow.position_number, newRow.position_desc)}
-                                        disabled={posLoading || !newRow.position_number || !newRow.position_desc}
-                                        className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-lg">
-                                        Add
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Search */}
-                                  <input value={posSearch} onChange={e => setPosSearch(e.target.value)}
-                                    placeholder="Search by position number or description..."
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs mb-3 focus:border-blue-400 focus:outline-none" />
-
-                                  {/* Table */}
-                                  <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                                    <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                                      <span className="text-xs font-semibold text-gray-600">
-                                        {filtered.length} of {allPositions.length} positions
-                                        {posSearch && ` matching "${posSearch}"`}
-                                      </span>
-                                      {posLoading && <span className="text-xs text-indigo-600 font-semibold animate-pulse">Saving...</span>}
-                                    </div>
-                                    <div className="overflow-y-auto max-h-[480px]">
-                                      <table className="w-full text-xs border-collapse">
-                                        <thead className="bg-gray-50 sticky top-0">
-                                          <tr>
-                                            <th className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200 w-36">Position No.</th>
-                                            <th className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200">Description</th>
-                                            <th className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200 w-24">Concatenated</th>
-                                            <th className="px-3 py-2 border-b border-gray-200 w-20"></th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                          {filtered.map(({ pn, pd }) => (
-                                            <tr key={pn} className="hover:bg-gray-50">
-                                              <td className="px-3 py-2 font-mono text-gray-500">{pn}</td>
-                                              <td className="px-3 py-2">
-                                                {editRow?.pn === pn ? (
-                                                  <input autoFocus value={editRow.pd}
-                                                    onChange={e => setEditRow(r => ({...r, pd: e.target.value}))}
-                                                    onKeyDown={e => { if(e.key==='Enter') handleSave(pn, editRow.pd); if(e.key==='Escape') setEditRow(null); }}
-                                                    className="border border-indigo-400 rounded px-2 py-1 w-full text-xs focus:outline-none" />
-                                                ) : (
-                                                  <span className="text-gray-800">{pd}</span>
-                                                )}
-                                              </td>
-                                              <td className="px-3 py-2 text-gray-400 text-[10px] font-mono truncate max-w-[120px]" title={`${pn} — ${pd}`}>{pn} — {pd}</td>
-                                              <td className="px-3 py-2">
-                                                <div className="flex gap-1">
-                                                  {editRow?.pn === pn ? (
-                                                    <>
-                                                      <button onClick={() => handleSave(pn, editRow.pd)} className="text-green-600 hover:text-green-800 font-bold text-[10px] px-1.5 py-0.5 border border-green-300 rounded">Save</button>
-                                                      <button onClick={() => setEditRow(null)} className="text-gray-500 hover:text-gray-700 text-[10px] px-1.5 py-0.5 border border-gray-300 rounded">✕</button>
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <button onClick={() => setEditRow({ pn, pd })} className="text-blue-500 hover:text-blue-700 text-[10px] px-1.5 py-0.5 border border-blue-200 rounded">Edit</button>
-                                                      <button onClick={() => handleDelete(pn)} className="text-red-400 hover:text-red-600 text-[10px] px-1.5 py-0.5 border border-red-200 rounded">Del</button>
-                                                    </>
-                                                  )}
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-                                </div>
-                                );
-                              })()}
+                            {activeAdminTab === 'positions' && (
+                                <PositionAdminPanel positionMap={positionMap} setPositionMap={setPositionMap} />
+                            )}
 
                             {activeAdminTab === 'active' && (
                                 <div className="max-w-3xl">
