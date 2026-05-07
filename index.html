@@ -1606,7 +1606,7 @@
           };
 
           useEffect(() => {
-            const handle = setTimeout(() => setDebouncedReportSearch(reportSearch), 300);
+            const handle = setTimeout(() => setDebouncedReportSearch(reportSearch), 0);
             return () => clearTimeout(handle);
           }, [reportSearch]);
 
@@ -1954,7 +1954,18 @@
 
               const tree = buildHierarchyTree(combinedData, actualMonths, forecastMonths);
 
-              setDataModel({ tree, combinedData, actualMonths, forecastMonths, baseMonth });
+              // Pre-build search index: id -> { name, position, idLower, nameLower, posLower }
+              // Built once on engine load — O(1) lookup per item instead of 46K string ops per keystroke
+              const searchIndex = new Map();
+              for (let i = 0; i < combinedData.length; i++) {
+                const { id, row } = combinedData[i];
+                if (!id || searchIndex.has(id)) continue;
+                const name = String(row['Name'] || '').toLowerCase();
+                const pos  = String(row['Posn Desc'] || row['Position'] || '').toLowerCase();
+                searchIndex.set(id, { nameLower: name, posLower: pos, idLower: String(id).toLowerCase() });
+              }
+
+              setDataModel({ tree, combinedData, searchIndex, actualMonths, forecastMonths, baseMonth });
               if (!dashboardMonth || dashboardMonth < (assumptions.startMonthFilter||'')) setDashboardMonth(baseMonth);
               setExpandedRows(new Set(['root']));
               setIsProcessing(false);
@@ -2186,16 +2197,19 @@
 
           const tableTree = useMemo(() => {
             if (!dataModel) return null;
-            const normalizedReportSearch = debouncedReportSearch.trim().toLowerCase();
-            if (normalizedReportSearch.length < 2) return dataModel.tree;
+            const q = debouncedReportSearch.trim().toLowerCase();
+            if (q.length < 2) return dataModel.tree;
+            const idx = dataModel.searchIndex;
             const filteredData = (dataModel.combinedData || []).filter(item => {
+              const entry = idx && idx.get(item.id);
+              if (entry) {
+                return entry.idLower.includes(q) || entry.nameLower.includes(q) || entry.posLower.includes(q);
+              }
+              // Fallback for rows without index entry (new hires, one-offs)
               const row = item.row || {};
-              const itemId       = String(item.id || row['ID'] || '').toLowerCase();
-              const itemName     = String(row['Name'] || row['Employee Name'] || '').toLowerCase();
-              const itemPosition = String(row['Posn Desc'] || row['Position'] || '').toLowerCase();
-              return itemId.includes(normalizedReportSearch)
-                  || itemName.includes(normalizedReportSearch)
-                  || itemPosition.includes(normalizedReportSearch);
+              return String(item.id || '').toLowerCase().includes(q)
+                  || String(row['Name'] || '').toLowerCase().includes(q)
+                  || String(row['Posn Desc'] || '').toLowerCase().includes(q);
             });
             return buildHierarchyTree(filteredData, dataModel.actualMonths, dataModel.forecastMonths);
           }, [dataModel, debouncedReportSearch, buildHierarchyTree]);
