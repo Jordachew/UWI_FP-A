@@ -2968,7 +2968,6 @@
                     ['ftecost',     '💰', 'FTE Cost Rate'],
                     ['salaryband',  '📈', 'Salary Bands'],
                     ['uniontrend',  '🤝', 'Union Trends'],
-                    ['ugc',         '🔵', 'UGC Split'],
                     ['sensitivity', '🎛️', 'Sensitivity'],
                     ['admin',       '⚙️', 'Admin'],
                   ].map(([tab, icon, label]) => (
@@ -3103,7 +3102,6 @@
                 {activeTab === 'uniontrend' && <UnionTrendTab dataModel={dataModel} processedDataCache={processedDataCache} scenarioFilters={scenarioFilters} />}
 
                 {/* --- SENSITIVITY TAB --- */}
-                {activeTab === 'ugc' && <UGCSplitTab dataModel={dataModel} processedDataCache={processedDataCache} scenarioFilters={scenarioFilters} />}
                 {activeTab === 'sensitivity' && <SensitivityTab dataModel={dataModel} processedDataCache={processedDataCache} />}
 
                 {/* --- ADMIN TAB --- */}
