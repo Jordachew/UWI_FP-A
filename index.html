@@ -405,10 +405,10 @@
           // Save union, new_hires, one_offs, filters to assumptions JSONB table
           // Increments are saved separately via saveIncrementsToDB
           const rows = [
-            { assumption_type: 'union',     data: assumptions.union     || [], updated_at: new Date().toISOString() },
-            { assumption_type: 'new_hires', data: assumptions.newHires  || [], updated_at: new Date().toISOString() },
-            { assumption_type: 'one_offs',  data: assumptions.oneOffs   || [], updated_at: new Date().toISOString() },
-            { assumption_type: 'filters',   data: { startMonthFilter: assumptions.startMonthFilter || '' }, updated_at: new Date().toISOString() },
+            { assumption_type: 'union',     data: assumptions.union     || [] },
+            { assumption_type: 'new_hires', data: assumptions.newHires  || [] },
+            { assumption_type: 'one_offs',  data: assumptions.oneOffs   || [] },
+            { assumption_type: 'filters',   data: { startMonthFilter: assumptions.startMonthFilter || '' } },
           ];
           const { error } = await sb.from('assumptions').upsert(rows, { onConflict: 'assumption_type' });
           if (error) { console.error('saveAssumptions error', error); throw error; }
