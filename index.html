@@ -24,12 +24,6 @@
 
     <!-- Supabase JS (pinned major version) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-
-    <!-- Runtime config — values injected by build.js from env vars -->
-    <script>
-      window.__SUPABASE_URL__ = '__SUPABASE_URL__';
-      window.__SUPABASE_KEY__ = '__SUPABASE_KEY__';
-    </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
     <div id="root"></div>
@@ -124,8 +118,8 @@
         );
 
         // --- Supabase Data Layer ---
-        const SUPABASE_URL  = window.__SUPABASE_URL__;
-        const SUPABASE_KEY  = window.__SUPABASE_KEY__;
+        const SUPABASE_URL  = 'https://rvtaryvxiryfmurudjcx.supabase.co';
+        const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2dGFyeXZ4aXJ5Zm11cnVkamN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODI4MjMsImV4cCI6MjA5MTI1ODgyM30.qnieHBDcLHeoRKelnO3gUMK4qKR8tlBjkWgOopJrCmM';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const POSITION_SEED = [["00100002","Administrative Secretary"],["00100003","Courier Attendant"],["00100004","Operations Supervisor"],["00100006","Administrative Assistant II"],["00100007","Administrative Assistant I"],["00100009","Events Support Supervisor"],["00100010","Clerical Assistant III"],["00100011","Administrative Assistant I"],["00100012","Administrative Assistant II"],["00100013","Administrative Assistant II"],["00100014","Administrative Assistant I"],["00100016","Senior Admin. Assistant II"],["00100020","Administrative Secretary"],["00100021","Laboratory Technician"],["00100024","Senior Secretary"],["00100025","Senior Secretary"],["00100026","Research Nurse"],["00100027","Office Manager II"],["00100028","Senior Research Nurse"],["00100031","Chief Library Attendant"],["00100032","Senior Admin. Assistant I"],["00100033","Lecturer"],["00100034","Lecturer"],["00100035","Lecturer"],["00100037","Library Assistant III"],["00100040","Lecturer"],["00100041","Lecturer"],["00100042","Lecturer"],["00100045","Principal Director"],["00100047","Senior Lecturer"],["00100051","Lecturer"],["00100052","Senior Lecturer"],["00100054","Professor"],["00100057","Lecturer"],["00100059","Lecturer"],["00100060","Lecturer"],["00100061","Lecturer"],["00100063","Lecturer"],["00100065","Senior Lecturer"],["00100067","Lecturer"],["00100068","Lecturer"],["00100070","Lecturer"],["00100071","Lecturer"],["00100072","Lecturer"],["00100073","Lecturer"],["00100075","Office Attendant II"],["00100076","Senior Lecturer"],["00100077","Senior Lecturer"],["00100078","Senior Lecturer"],["00100080","Senior Secretary"],["00100081","Junior Laboratory Technologist"],["00100082","Laboratory Attendant II"],["00100083","Laboratory Technologist"],["00100084","Foreign Assistant"],["00100086","Boatman/General Worker"],["00100088","Agricultural Assistant"],["00100089","Laboratory Attendant II"],["00100090","Laboratory Technologist"],["00100091","Chief Laboratory Technologist"],["00100092","Scientific Officer"],["00100093","Laboratory Technologist"],["00100095","Grounds Assistant I"],["00100096","Administrative Secretary"],["00100097","Laboratory Technologist"],["00100099","Herbarium Curator"],["00100100","Chief Office Attendant"],["00100105","Lecturer"],["00100106","Lecturer"],["00100107","Lecturer"],["00100109","Lecturer"],["00100110","Lecturer"],["00100112","Lecturer"],["00100114","Senior Lecturer"],["00100116","Senior Lecturer"],["00100118","Laboratory Attendant II"],["00100120","Administrative Assistant I"],["00100121","Administrative Secretary"],["00100122","Lecturer"],["00100123","Lecturer"],["00100124","Lecturer"],["00100125","Senior Lecturer"],["00100126","Director"],["00100127","Senior Lecturer"],["00100128","Lecturer"],["00100130","Clerical Assistant III"],["00100131","Lecturer"],["00100135","Chief Office Attendant"],["00100136","Lecturer"],["00100138","Lecturer"],["00100142","Administrative Assistant I"],["00100144","Lecturer"],["00100148","Lecturer"],["00100150","Lecturer"],["00100151","Librarian ll"],["00100152","Librarian ll"],["00100155","Senior Lecturer"],["00100159","Senior Lecturer"],["00100160","Lecturer"],["00100161","Senior Lecturer"],["00100164","Lecturer"],["00100167","Lecturer"],["00100168","Lecturer"],["00100169","Lecturer"],["00100171","Lecturer"],["00100174","Lecturer"],["00100175","Lecturer"],["00100176","Publications Officer"],["00100177","Lecturer"],["00100179","Senior Lecturer"],["00100180","Senior Lecturer"],["00100187","Senior Secretary"],["00100189","Handyman II"],["00100191","Operations Supervisor"],["00100197","Administrative Assistant I"],["00100198","Senior Admin. Assistant I"],["00100199","Departmental Attendant I"],["00100200","Senior Secretary"],["00100201","Departmental Attendant I"],["00100202","Senior Departmental Attendant"],["00100203","Chief Office Attendant"],["00100204","Senior Lecturer"],["00100205","Lecturer"],["00100206","Campus Librarian"],["00100207","Deputy Librarian"],["00100208","Senior Librarian"],["00100209","Senior Librarian"],["00100210","Senior Librarian"],["00100211","Senior Librarian"],["00100212","Librarian ll"],["00100213","Librarian ll"],["00100214","Librarian ll"],["00100215","Librarian ll"],["00100216","Librarian ll"],["00100217","Librarian ll"],["00100219","Librarian ll"],["00100220","Librarian ll"],["00100222","Librarian ll"],["00100223","Librarian ll"],["00100224","Librarian ll"],["00100226","Librarian ll"],["00100227","Senior Librarian"],["00100228","Librarian ll"],["00100229","Senior Librarian"],["00100230","Librarian ll"],["00100231","Lecturer"],["00100232","Lecturer"],["00100233","Lecturer"],["00100234","Lecturer"],["00100235","Lecturer"],["00100236","Senior Lecturer"],["00100237","Lecturer"],["00100238","Lecturer"],["00100240","Lecturer"],["00100241","Lecturer"],["00100242","Lecturer"],["00100243","Lecturer"],["00100244","Lecturer"],["00100245","Lecturer"],["00100247","Professor"],["00100248","Professor"],["00100249","Professor"],["00100251","Senior Lecturer"],["00100252","Senior Lecturer"],["00100253","Senior Lecturer"],["00100254","Senior Lecturer"],["00100255","Lecturer"],["00100256","Senior Lecturer"],["00100257","Lecturer"],["00100260","Professor"],["00100261","Senior Lecturer"],["00100262","Professor"],["00100263","Senior Lecturer"],["00100264","Senior Lecturer"],["00100265","Senior Lecturer"],["00100267","Senior Lecturer"],["00100269","Lecturer"],["00100270","Lecturer"],["00100271","Lecturer"],["00100272","Lecturer"],["00100273","Lecturer"],["00100274","Lecturer"],["00100275","Lecturer"],["00100277","Lecturer"],["00100278","Lecturer"],["00100279","Lecturer"],["00100280","Lecturer"],["00100281","Lecturer"],["00100282","Lecturer"],["00100283","Lecturer"],["00100284","Lecturer"],["00100285","Lecturer"],["00100287","Senior Lecturer"],["00100288","Senior Lecturer"],["00100289","Senior Lecturer"],["00100290","Lecturer"],["00100292","Senior Lecturer"],["00100293","Senior Lecturer"],["00100294","Professor"],["00100295","Professor"],["00100297","Senior Lecturer"],["00100298","Senior Lecturer"],["00100299","Lecturer"],["00100300","Lecturer"],["00100301","Lecturer"],["00100302","Data Controller"],["00100303","Senior Lecturer"],["00100304","Senior Lecturer"],["00100306","Senior Lecturer"],["00100307","Lecturer"],["00100308","Lecturer"],["00100309","Lecturer"],["00100310","Lecturer"],["00100311","Lecturer"],["00100312","Lecturer"],["00100313","Senior Research Fellow"],["00100314","Snr Lecturer Non-Med To Bar"],["00100317","Senior Lecturer"],["00100318","Co-ordinator"],["00100319","Lecturer"],["00100320","Lecturer"],["00100321","Lecturer"],["00100322","Lecturer"],["00100324","Senior Lecturer"],["00100325","Senior Lecturer"],["00100326","Lecturer"],["00100327","Lecturer"],["00100328","Lecturer"],["00100330","Research Fellow"],["00100331","Director"],["00100332","Assistant Director"],["00100333","Environmental Data Manager"],["00100334","Lecturer"],["00100338","Lecturer"],["00100339","Senior Lecturer"],["00100340","Lecturer"],["00100341","Lecturer"],["00100342","Lecturer"],["00100343","Lecturer"],["00100345","Senior Lecturer"],["00100346","Senior Lecturer"],["00100347","Lecturer"],["00100348","Lecturer"],["00100349","Lecturer"],["00100350","Lecturer"],["00100351","Lecturer"],["00100352","Professor"],["00100355","Lecturer"],["00100356","Lecturer"],["00100357","Lecturer"],["00100358","Lecturer"],["00100359","Lecturer"],["00100360","Lecturer"],["00100361","Senior Lecturer"],["00100362","Lecturer"],["00100363","Professor"],["00100364","Professor"],["00100365","Professor"],["00100366","Senior Lecturer"],["00100367","Senior Lecturer"],["00100368","Senior Lecturer"],["00100369","Professor"],["00100371","Senior Lecturer"],["00100374","Lecturer"],["00100375","Lecturer"],["00100376","Lecturer"],["00100377","Lecturer"],["00100378","Lecturer"],["00100379","Lecturer"],["00100380","Lecturer"],["00100382","Lecturer"],["00100383","Lecturer"],["00100384","Lecturer"],["00100385","Lecturer"],["00100387","Lecturer"],["00100388","Lecturer"],["00100390","Lecturer"],["00100391","Senior Lecturer"],["00100392","Senior Lecturer"],["00100393","Professor"],["00100395","Lecturer"],["00100396","Lecturer"],["00100397","Senior Lecturer"],["00100398","Senior Lecturer"],["00100400","Lecturer"],["00100401","Lecturer"],["00100402","Senior Lecturer"],["00100403","Professor"],["00100406","Lecturer"],["00100408","Lecturer"],["00100409","Lecturer"],["00100410","Lecturer"],["00100411","Professor"],["00100412","Senior Lecturer"],["00100413","Senior Lecturer"],["00100414","Lecturer"],["00100416","Lecturer"],["00100417","Lecturer"],["00100418","Lecturer"],["00100420","Lecturer"],["00100421","Lecturer"],["00100422","Senior Lecturer"],["00100425","Lecturer"],["00100426","Lecturer"],["00100428","Lecturer"],["00100429","Lecturer"],["00100431","Lecturer"],["00100432","Lecturer"],["00100433","Lecturer"],["00100435","Lecturer"],["00100436","Lecturer"],["00100437","Lecturer"],["00100438","Lecturer"],["00100439","Lecturer"],["00100440","Professor"],["00100442","Senior Lecturer"],["00100443","Senior Lecturer"],["00100445","Lecturer"],["00100446","Lecturer"],["00100449","Professor"],["00100452","Senior Lecturer"],["00100453","Senior Lecturer"],["00100454","Lecturer"],["00100455","Lecturer"],["00100457","Lecturer"],["00100458","Lecturer"],["00100459","Lecturer"],["00100460","Information Technology Officer"],["00100461","Lecturer"],["00100462","Lecturer"],["00100463","Lecturer"],["00100464","Lecturer"],["00100465","Administrative Officer"],["00100466","Principal"],["00100467","Executive Assistant"],["00100468","Senior Planning Officer I"],["00100469","Deputy Principal"],["00100470","Executive Director"],["00100471","Director, Research&Innovation"],["00100472","Audit & Compliance Manager"],["00100473","Manager"],["00100474","Clinical Director"],["00100475","Senior Counsellor"],["00100476","Medical Officer"],["00100478","Counsellor"],["00100479","Counsellor"],["00100480","Director of Student Services"],["00100481","Student Services Manager"],["00100482","Student Services Manager"],["00100483","Student Services Manager"],["00100485","Student Services Manager"],["00100486","Student Services Manager"],["00100488","Campus Registrar"],["00100489","Senior Assistant Registrar"],["00100490","Snr Asst Reg-StudentEnrol&Ret"],["00100491","Snr Asst Reg-Assessment&Grad"],["00100494","Assistant Registrar"],["00100495","Senior Assistant Registrar I"],["00100497","Senior Assistant Registrar"],["00100499","Dir. Marketing Recruit & Comm"],["00100500","Campus Records Manager"],["00100501","Business Development Officer"],["00100505","Professor"],["00100506","Senior Lecturer"],["00100507","Senior Lecturer"],["00100508","Senior Lecturer"],["00100509","Lecturer"],["00100510","Lecturer"],["00100511","Professor"],["00100512","Senior Lecturer"],["00100513","Senior Lecturer"],["00100514","Senior Lecturer"],["00100515","Lecturer"],["00100516","Lecturer"],["00100517","Lecturer"],["00100518","Lecturer"],["00100519","Lecturer"],["00100520","Lecturer"],["00100521","Senior Lecturer"],["00100522","Lecturer"],["00100524","Medical Officer"],["00100525","Medical Officer"],["00100526","Lecturer"],["00100527","Multimedia Technologist II"],["00100537","Chief Office Attendant"],["00100544","Administrative Secretary"],["00100551","Technical Assistant II"],["00100553","Assistant Supervisor-Joinery"],["00100562","Editor"],["00100574","Office Attendant II"],["00100582","Senior Lecturer"],["00100586","Administrative Secretary"],["00100595","Senior Medical Technologist II"],["00100597","Deputy Estate Manager"],["00100598","Administrative Secretary"],["00100599","Estate Manager"],["00100600","Deputy Estate Mgr(Student Sup)"],["00100601","Deputy Estate Manager"],["00100602","Administrative Secretary"],["00100603","Office Manager II"],["00100604","Office Attendant I"],["00100605","Senior Departmental Attendant"],["00100606","Administrative Secretary"],["00100608","Stores Assistant II"],["00100609","Chief Animal House Attendant"],["00100610","Senior Medical Technologist II"],["00100611","Senior Medical Technologist II"],["00100612","Administrative Med Tech"],["00100613","Stores Attendant"],["00100614","Senior Secretary"],["00100616","Senior Scientific Officer"],["00100617","Senior Laboratory Attendant"],["00100618","Cleaner"],["00100619","Senior Admin. Assistant II"],["00100620","Laboratory Attendant I"],["00100621","Laboratory Attendant I"],["00100622","Chief Medical Technologist"],["00100623","Senior Medical Technologist II"],["00100624","Senior Medical Technologist II"],["00100625","Chief Medical Technologist"],["00100626","Senior Medical Technologist II"],["00100627","Senior Medical Technologist II"],["00100628","Senior Medical Technologist II"],["00100629","Cleaner"],["00100630","Senior Medical Technologist II"],["00100631","Senior Medical Technologist II"],["00100632","Chief Medical Technologist"],["00100634","Senior Medical Technologist II"],["00100635","Senior Medical Technologist II"],["00100636","Senior Medical Technologist II"],["00100637","Departmental Attendant II"],["00100638","Manager I"],["00100639","Departmental Attendant II"],["00100640","Senior Medical Technologist II"],["00100641","Chief Medical Technologist"],["00100642","Secretary III"],["00100643","Senior Medical Technologist II"],["00100645","Senior Medical Technologist II"],["00100646","Senior Office Attendant"],["00100647","Chief Medical Technologist"],["00100648","Senior Medical Technologist II"],["00100649","Chief Medical Technologist"],["00100650","Chief Medical Technologist"],["00100651","Secretary III"],["00100652","Chief Laboratory Attendant"],["00100653","Senior Secretary"],["00100654","Administrative Secretary"],["00100655","Electronics Technician II"],["00100656","Assistant Manager"],["00100657","Senior Office Attendant"],["00100658","Information Technology Officer"],["00100659","Information Systems Manager"],["00100669","Director-General"],["00100670","Manager l/Engineer"],["00100673","Information Technology Officer"],["00100677","Administrative Secretary"],["00100678","Office Attendant II"],["00100680","Senior Departmental Attendant"],["00100682","Senior Medical Technologist II"],["00100683","Laboratory Attendant I"],["00100684","Secretary II"],["00100685","Senior Secretary"],["00100686","Senior Secretary"],["00100687","Senior Public Health Nurse"],["00100688","Senior Admin. Assistant II"],["00100689","Laboratory Attendant I"],["00100706","Senior Admin. Assistant II"],["00100707","Office Manager I"],["00100708","Office Attendant II"],["00100709","Senior Admin. Assistant I"],["00100710","Administrative Officer"],["00100712","Senior Office Attendant"],["00100714","Security Manager"],["00100716","Administrative Secretary"],["00100717","Administrative Secretary"],["00100718","Senior Admin. Assistant I"],["00100719","Chief Office Attendant"],["00100723","Administrative Secretary"],["00100724","Clerical Assistant III"],["00100726","Senior Admin. Assistant II"],["00100727","Stores Attendant"],["00100730","Senior Medical Technologist II"],["00100731","Records Management Assistant I"],["00100732","Senior Medical Technologist II"],["00100734","Chief Medical Technologist"],["00100736","Senior Medical Technologist II"],["00100737","Departmental Attendant II"],["00100738","Administrative Assistant II"],["00100740","Senior Medical Technologist II"],["00100741","Senior Medical Technologist II"],["00100743","Senior Departmental Attendant"],["00100744","Clerical Assistant III"],["00100745","Quality Manager"],["00100748","Senior Medical Technologist II"],["00100749","Senior Medical Technologist II"],["00100751","Manager/Coordinator"],["00100752","Senior Medical Technologist II"],["00100753","Dean"],["00100754","Secretary III"],["00100755","Dean"],["00100756","Dean"],["00100757","Dean"],["00100758","Departmental Storekeeper"],["00100759","Laboratory Attendant I"],["00100760","Senior Laboratory Attendant"],["00100762","Cleaner"],["00100764","Senior Medical Technologist II"],["00100767","Records Management Assistant 2"],["00100768","Senior Medical Technologist II"],["00100774","Director II"],["00100780","Senior Medical Technologist II"],["00100781","Medical Photographer"],["00100784","Payroll Officer"],["00100785","Payroll Officer"],["00100786","Payroll Assistant Accountant"],["00100787","Senior Payroll Systems Officer"],["00100788","Senior Accounting Officer"],["00100789","Budget/Accounts Analyst"],["00100790","Payroll Officer"],["00100791","Payroll Officer"],["00100794","Telephone Operator"],["00100796","Clerical Assistant III"],["00100797","Office Manager II"],["00100799","Senior HR Assistant II"],["00100800","Staff Benefits Officer II"],["00100802","Courier Attendant"],["00100809","Administrative Assistant I"],["00100810","Courier"],["00100811","Administrative Officer II"],["00100817","Laboratory Attendant I"],["00100818","Senior Secretary"],["00100819","Senior Instrument Technologist"],["00100820","Information Technologist II"],["00100821","Senior Admin. Assistant I"],["00100823","Scientific Officer"],["00100825","Office Attendant II"],["00100826","Senior Laboratory Technologist"],["00100827","Senior Laboratory Technologist"],["00100828","Driver I"],["00100829","Carpenter"],["00100830","Laboratory Technologist"],["00100831","Senior Scientific Officer"],["00100833","Plumber"],["00100834","Assistant Supervisor-Plumbing"],["00100835","Plumber"],["00100836","Senior Secretary"],["00100839","Office Attendant"],["00100840","Laboratory Attendant II"],["00100841","Animal House Attendant"],["00100846","Administrative Secretary"],["00100847","Courier"],["00100849","Senior Office Attendant"],["00100851","Senior Admin. Assistant II"],["00100852","Programme Co-ordinator III"],["00100853","Senior Office Attendant"],["00100854","Customer Service Officer II"],["00100859","Records & Info Mgmt Serv Coord"],["00100860","Senior Admin. Assistant I"],["00100861","Records Management Assistant 2"],["00100862","Administrative Assistant II"],["00100863","Record & Info Mgmt Advis Offic"],["00100867","Records Management Officer"],["00100868","Filing Clerk"],["00100869","Senior Secretary"],["00100870","Tree Cutter/ Hedge Pruner"],["00100871","Sanitation Assistant"],["00100872","Janitor I"],["00100873","Supervisor - Grounds"],["00100874","Assistant Superintendent"],["00100875","Janitor I"],["00100876","Sanitary Worker II"],["00100877","Janitor I"],["00100880","Sanitary Worker II"],["00100881","Plant  Operator II"],["00100882","Senior Pest Controller"],["00100897","Human Resource Assistant I"],["00100902","Information Technology Officer"],["00100904","Information Technology Officer"],["00100907","Senior Lecturer"],["00100913","Lecturer"],["00100914","Lecturer"],["00100915","Lecturer"],["00100916","Lecturer"],["00100918","Senior Lecturer"],["00100919","Professor"],["00100921","Senior Lecturer"],["00100924","Senior Lecturer"],["00100926","Lecturer"],["00100929","Lecturer"],["00100930","Lecturer"],["00100931","Senior Lecturer"],["00100932","Tutor"],["00100935","Professor"],["00100951","Lecturer"],["00100962","Senior Secretary"],["00100965","Office Attendant II"],["00100969","Senior Admin. Assistant I"],["00100970","Office Attendant II"],["00100971","Campus Bursar"],["00100972","Deputy Bursar"],["00100974","Divisional Manager"],["00100976","Manager"],["00100977","Departmental Attendant II"],["00100980","Manager"],["00100981","Supervisor - Building"],["00100982","Manager"],["00100983","Manager"],["00100984","Assistant Manager"],["00100985","Assistant Manager"],["00100989","Sanitary Worker I"],["00100990","Handyman/Mechanic"],["00100991","Sanitary Worker I"],["00100992","Sanitary Worker I"],["00100994","Lecturer"],["00100996","Museum Curator"],["00100997","Plant Operator I"],["00100998","Grounds/Sanitation Assistant I"],["00100999","Sanitary Worker I"],["00101000","Librarian II"],["00101001","Sanitary Worker I"],["00101004","Sanitary Worker I"],["00101005","Janitor I"],["00101008","Janitor I"],["00101010","Chief Office Attendant"],["00101017","Administrative Secretary"],["00101018","Senior Admin. Assistant I"],["00101019","Administrative Assistant I"],["00101020","Office Manager II"],["00101022","Caretaker II"],["00101023","Senior Groundsman"],["00101024","Sports Co-ordinator"],["00101026","Mechanic/Driver"],["00101027","Stores Assistant"],["00101028","Stores Attendant"],["00101030","Assistant Storekeeper II"],["00101031","Stores Assistant"],["00101032","Handyman II"],["00101034","Cleaner"],["00101039","Lifeguard/Beach Attendant"],["00101061","Senior Telephone Operator"],["00101063","Chief Telephone Operator"],["00101064","Systems Supervisor"],["00101065","Senior Office Attendant"],["00101066","Stores Assistant II"],["00101067","Information Technician II"],["00101068","Security Assistant"],["00101069","Office Manager I"],["00101070","Shipping & Purchasing Officer"],["00101080","Accounting Officer I"],["00101095","Handyman/Mechanic"],["00101096","Driver lll"],["00101097","Supervisor - Transport"],["00101098","Sanitary Worker III"],["00101100","Driver (Heavy Duty)"],["00101102","Driver III"],["00101105","Mechanic"],["00101106","Driver (Heavy Duty)"],["00101125","Senior Secretary"],["00101126","Nursing Sister"],["00101127","Pharmacist II"],["00101128","Senior Admin. Assistant II"],["00101130","Senior Departmental Attendant"],["00101132","Clinical Assistant"],["00101133","Customer Service Clerk l"],["00101134","Courier/Attendant"],["00101135","Pharmacist II"],["00101136","Senior Secretary"],["00101146","Senior HR Assistant II"],["00101149","Departmental Attendant II"],["00101151","Senior Departmental Attendant"],["00101152","Senior Departmental Attendant"],["00101153","Office Attendant II"],["00101154","Office Attendant II"],["00101155","Senior Admin. Assistant II"],["00101156","Office Attendant II"],["00101157","Administrative Assistant II"],["00101158","Office Attendant II"],["00101159","Supervisor(Services&Buildings)"],["00101160","Office Attendant I"],["00101161","Office Attendant II"],["00101162","Senior Departmental Attendant"],["00101163","Senior Admin. Assistant I"],["00101165","Office Attendant II"],["00101166","Chief Office Attendant"],["00101168","Senior Office Attendant"],["00101170","Duplicating Clerk"],["00101171","Car Park Attendant"],["00101173","Car Park Attendant"],["00101174","Chapel Assistant"],["00101175","Office Attendant II"],["00101176","Departmental Attendant II"],["00101177","Senior Office Attendant"],["00101178","Office Attendant II"],["00101179","Office Attendant II"],["00101181","Senior Secretary"],["00101182","Administrative Secretary"],["00101183","Administrative Secretary"],["00101184","Workshop Technician"],["00101185","Senior Departmental Attendant"],["00101186","Senior Mortician"],["00101188","Administrative Secretary"],["00101189","Laboratory Attendant I"],["00101190","Senior Groundsman/Handyman"],["00101191","Senior Laboratory Technologist"],["00101192","Scientific Officer"],["00101193","Senior Laboratory Attendant"],["00101194","Laboratory Technologist"],["00101195","Laboratory Attendant II"],["00101196","Scientific Officer"],["00101197","Research Fellow"],["00101198","Scientific Officer"],["00101199","Junior Prosector"],["00101200","Senior Laboratory Attendant"],["00101201","Senior Instrument Tech. II"],["00101202","Laboratory Technologist"],["00101203","Senior Laboratory Technologist"],["00101204","Chief Laboratory Attendant"],["00101207","Chief Laboratory Attendant"],["00101208","Manager, Medical Technology"],["00101209","Animal House Supervisor"],["00101210","Departmental Attendant II"],["00101211","Laboratory Attendant II"],["00101212","Laboratory Technician"],["00101213","Technical Assistant II"],["00101214","Administrative Secretary"],["00101215","Multimedia Technologist"],["00101216","Laboratory Technologist"],["00101217","Chief Lab. Attendant/Courier"],["00101218","Chief Departmental Attendant"],["00101222","Senior Laboratory Technologist"],["00101223","Laboratory Attendant I"],["00101224","Senior Admin. Assistant II"],["00101225","Senior Medical Technologist II"],["00101226","Laboratory Attendant I"],["00101227","Chief Medical Technologist"],["00101228","Senior Financial Analyst"],["00101229","Painter"],["00101230","Handyman II"],["00101232","Driver III/Attendant"],["00101233","Office Services Assistant"],["00101234","Senior Secretary"],["00101236","Draughtsman - Supervisor"],["00101238","Senior Supervisor"],["00101239","Business Process Supervisor"],["00101241","Trade Assistant"],["00101243","Painter"],["00101245","Driver lll"],["00101246","Driver lll"],["00101249","Senior Admin. Assistant II"],["00101251","Senior Research Nurse"],["00101254","Secretary III"],["00101255","Administrative Assistant II"],["00101256","Senior Office Attendant"],["00101257","Senior Admin. Assistant I"],["00101260","Senior Office Attendant"],["00101261","Office Attendant II"],["00101262","Administrative Assistant II"],["00101263","Senior Admin. Assistant II"],["00101264","Snr. Electronics Technologist"],["00101265","Executive Secretary"],["00101266","Accounting Officer II"],["00101267","TMA Assistant"],["00101270","Clerical Assistant III"],["00101271","Manager (Admin and Finance)"],["00101272","Accounting Officer"],["00101273","Senior Secretary"],["00101275","Clerical Assistant III"],["00101276","Senior Secretary"],["00101278","Senior Admin. Assistant I"],["00101279","Business Process Supervisor"],["00101280","Office Attendant II"],["00101283","Senior Secretary"],["00101284","Customer Services Clerk II"],["00101285","Stores Assistant"],["00101286","Chief Office Attendant"],["00101287","Departmental Storekeeper"],["00101289","Senior Admin. Assistant I"],["00101293","Cleaner"],["00101295","Boatman/General Worker"],["00101296","Chief Scientific Officer"],["00101297","Scientific Officer"],["00101299","Office Manager II"],["00101301","Laboratory Attendant I"],["00101302","Radiation Safety Officer"],["00101313","Senior Admin. Assistant I"],["00101317","Senior Medical Technologist II"],["00101318","Senior Medical Technologist II"],["00101319","Senior Medical Technologist II"],["00101321","Administrative Med Tech"],["00101322","Senior Medical Technologist II"],["00101323","Laboratory Technologist"],["00101324","Workshop Technician"],["00101325","Laboratory Technician"],["00101326","Departmental Storekeeper"],["00101327","Laboratory Attendant II"],["00101328","Chief Laboratory Technologist"],["00101330","Senior Departmental Attendant"],["00101331","General Worker I"],["00101332","Electronics Technician I"],["00101333","Maintenance Supervisor"],["00101334","Office Attendant II"],["00101335","Office Attendant II"],["00101336","Departmental Attendant II"],["00101337","Workshop Technician"],["00101338","Senior Admin. Assistant I"],["00101339","Assist. Department Storekeeper"],["00101340","Departmental Attendant II"],["00101341","Senior HR Assistant I"],["00101342","Laboratory Technician"],["00101343","Departmental Attendant II"],["00101344","Assistant Glassblower"],["00101345","Laboratory Technician"],["00101346","Departmental Attendant II"],["00101347","Senior Admin. Assistant II"],["00101348","Secretary III"],["00101349","Senior Laboratory Attendant"],["00101350","Laboratory Technician"],["00101352","Senior Departmental Attendant"],["00101355","Departmental Attendant II"],["00101365","Senior Admin. Assistant I"],["00101366","Departmental Attendant II"],["00101367","Senior Public Health Nurse"],["00101369","Community Health Aide"],["00101370","Community Health Aide"],["00101371","Social Worker"],["00101372","Records Management Assistant I"],["00101373","Senior Departmental Attendant"],["00101374","Driver lll"],["00101375","Departmental Attendant II"],["00101376","Secretary II"],["00101378","Departmental Attendant II"],["00101380","Senior Secretary"],["00101382","Secretary II"],["00101388","Domestic Supervisor"],["00101390","Diving Officer"],["00101392","Clerical Assistant III"],["00101393","Chief Scientific Officer"],["00101394","Accounting Officer II"],["00101396","Mechanic/Driver"],["00101399","Administrative Secretary"],["00101400","Seismic Analyst"],["00101401","Seismic Officer - Technical"],["00101402","Senior Admin. Assistant I"],["00101404","Senior Admin. Assistant I"],["00101405","Senior Admin. Assistant II"],["00101406","Senior Departmental Attendant"],["00101407","Chief Office Attendant"],["00101408","Departmental Attendant II"],["00101409","Chief Office Attendant"],["00101410","Senior Secretary"],["00101412","Supervisor-Internal Services"],["00101414","Senior Admin. Assistant II"],["00101415","Office Manager II"],["00101416","Senior Production Assistant I"],["00101418","Administrative Assistant II"],["00101419","Senior Office Attendant"],["00101420","Library Assistant I"],["00101421","Senior Secretary"],["00101422","Secretary III"],["00101423","Courier Attendant"],["00101424","Administrative Secretary"],["00101425","Senior Secretary"],["00101426","Electrician B"],["00101427","Deputy Superintendent of Works"],["00101428","Supervisor - Electrical"],["00101429","Supervisor - Electrical"],["00101431","Electrician A"],["00101436","Senior Scientific Officer"],["00101439","Information Technologist II"],["00101440","Senior Admin. Assistant II"],["00101441","Senior Departmental Attendant"],["00101442","Supervisor - Electrical"],["00101444","Senior Admin. Assistant I"],["00101445","Administrative Assistant II"],["00101447","Information Technologist II"],["00101448","Senior Secretary"],["00101449","Senior Secretary"],["00101450","Technical Assistant III"],["00101451","Secretary III"],["00101452","Secretary III"],["00101453","Administrative Assistant II"],["00101454","Office Attendant II"],["00101455","Senior Laboratory Attendant"],["00101456","Departmental Attendant II"],["00101457","Laboratory Technologist"],["00101458","Administrative Secretary"],["00101460","Senior Secretary"],["00101461","Administrative Secretary"],["00101462","Senior Admin. Assistant I"],["00101463","Administrative Assistant II"],["00101464","Administrative Assistant II"],["00101465","Gardener I"],["00101468","Gardener I"],["00101469","Supervisor - Plumbing"],["00101470","Gardener I"],["00101471","Janitor I"],["00101475","Plant Operator I"],["00101477","Gardener I"],["00101480","Driver lll"],["00101482","Gardener I"],["00101484","Irrigation Attendant"],["00101485","Sanitary Worker III"],["00101487","Gardener I"],["00101488","Driver (Heavy Duty)"],["00101490","Lawn Tractor Operator"],["00101495","Sanitary Worker I"],["00101496","Gardener I"],["00101497","Gardener I"],["00101498","Assistant Supervisor (S&G)"],["00101499","Gardener I"],["00101501","Records Management Assistant 2"],["00101502","Autopsy Assistant"],["00101503","Administrative Assistant II"],["00101504","Chief Medical Technologist"],["00101505","Senior Medical Technologist II"],["00101507","Senior Laboratory Technologist"],["00101509","Chief Medical Technologist"],["00101510","Senior Medical Technologist I"],["00101511","Senior Medical Technologist II"],["00101512","Digital Marketing Assistant"],["00101514","Archaeology Technologist"],["00101515","Senior Secretary"],["00101516","Driver/Handyman"],["00101517","Accommodation Officer"],["00101518","Senior Secretary"],["00101519","Events Support Supervisor"],["00101520","Accommodation Officer"],["00101528","Secretary III"],["00101531","Senior Admin. Assistant I"],["00101532","Secretary III"],["00101533","Senior Secretary"],["00101537","Customer Service Officer"],["00101554","Senior Secretary"],["00101555","Senior Admin. Assistant I"],["00101557","Administrative Assistant II"],["00101559","Senior Admin. Assistant II"],["00101560","Administrative Secretary"],["00101561","Senior Secretary"],["00101563","Binder IV"],["00101564","Library Assistant I"],["00101565","Custodian Attendant"],["00101566","Library Assistant I"],["00101567","Senior Library Assistant I"],["00101568","Chief Photo & Instr. Tech."],["00101569","Senior Library Assistant I"],["00101570","Custodian Attendant"],["00101571","Library Attendant I"],["00101572","Library Attendant I"],["00101573","Library Assistant I"],["00101575","Library Assistant I"],["00101576","Library Assistant III"],["00101578","Library Assistant III"],["00101580","Binder III"],["00101581","Library Assistant I"],["00101582","Library Attendant I"],["00101583","Library Assistant I"],["00101584","Library Attendant I"],["00101585","Custodian Attendant"],["00101586","Senior Library Attendant"],["00101587","Library Assistant I"],["00101589","Library Clerk"],["00101590","Library Attendant I"],["00101591","Chief Binder"],["00101592","Library Assistant III"],["00101594","Library Attendant I"],["00101595","Library Assistant I"],["00101596","Binder III"],["00101597","Senior Library Attendant"],["00101598","Senior Departmental Attendant"],["00101599","Library Assistant III"],["00101600","Custodian Attendant"],["00101601","Custodian Attendant"],["00101602","Library Assistant II"],["00101604","Library Clerk"],["00101605","Library Attendant I"],["00101606","Library Assistant I"],["00101607","Accounting Officer II"],["00101608","Senior Library Attendant"],["00101609","Library Clerk"],["00101610","Senior Library Attendant"],["00101611","Senior Binder"],["00101612","Library Assistant II"],["00101613","Library Assistant I"],["00101616","Cashier/Machine Operator"],["00101618","Library Assistant I"],["00101619","Binder IV"],["00101620","Driver/Attendant"],["00101621","Library Attendant I"],["00101622","Custodian Attendant"],["00101623","Library Attendant I"],["00101624","Custodian Attendant"],["00101625","Library Attendant I"],["00101626","Library Assistant I"],["00101627","Library Assistant II"],["00101628","Information Technician II"],["00101629","Library Attendant I"],["00101630","Library Assistant I"],["00101631","Library Attendant I"],["00101632","Library Assistant I"],["00101633","Office Manager II"],["00101636","Accounting Clerk II"],["00101639","Administrative Secretary"],["00101640","Secretary III"],["00101641","Library Assistant I"],["00101642","Secretary III"],["00101644","Records Management Officer"],["00101654","Assistant Registrar"],["00101657","Accounts Payable Officer"],["00101658","Supervisor-Billings & Receivab"],["00101659","Assistant Manager"],["00101660","Purchasing Officer I"],["00101661","Financial Analyst II"],["00101662","Cash Management Supervisor"],["00101663","Pensions Officer I"],["00101664","Financial Analyst II"],["00101665","Senior Procurement Officer"],["00101666","Customer Service Officer"],["00101670","Senior Budget Analyst"],["00101672","Senior Accounts Payable Office"],["00101673","Accounts Payable Officer"],["00101677","Student Outreach & Recr. Offcr"],["00101678","Functional Analyst 2"],["00101679","Student Outreach & Recru Offic"],["00101680","Customer Service Rep."],["00101682","Administrative Assistant II"],["00101690","Senior Secretary"],["00101693","Departmental Attendant I"],["00101695","Office Attendant II"],["00101696","Laboratory Technologist"],["00101697","Senior Laboratory Attendant"],["00101698","Laboratory Attendant II"],["00101700","Chief Laboratory Attendant"],["00101701","Handyman I"],["00101703","Payment Processing Officer"],["00101704","Teller"],["00101706","Senior Supervisor"],["00101709","Senior Scientific Officer"],["00101710","Scientific Officer"],["00101712","Senior Medical Technologist I"],["00101713","Laboratory Technician"],["00101714","Laboratory Technician"],["00101716","Community Health Aide"],["00101717","Information Technologist II"],["00101718","Office Attendant I"],["00101721","Senior Secretary"],["00101723","Senior Admin. Assistant I"],["00101724","Office Manager II"],["00101725","Office Attendant II"],["00101726","Accounting Clerk II"],["00101727","Secretary III"],["00101731","Senior Secretary"],["00101732","Senior Secretary"],["00101733","Clerical Assistant III"],["00101734","Customer Service Officer I"],["00101735","Administrative Assistant I"],["00101738","Assistant Storekeeper II"],["00101739","Administrative Assistant II"],["00101740","Records Management Assistant I"],["00101741","Customer Service Officer I"],["00101742","Autopsy Assistant"],["00101743","Fixed Asset Officer"],["00101746","Office Attendant II"],["00101749","Clerical Assistant II"],["00101751","Secretary III"],["00101752","Secretary III"],["00101757","Information Technology Officer"],["00101764","Library Assistant II"],["00101765","Technical Assistant/Cashier"],["00101768","Binder III"],["00101770","Custodian Attendant"],["00101771","Sanitary Worker I"],["00101772","Sanitary Worker I"],["00101779","Administrative Secretary"],["00101781","Driver lll"],["00101786","Library Assistant II"],["00101788","Animal House Attendant"],["00101789","Supervisor - Paintings"],["00101790","Supervisor - Building"],["00101791","Supervisor - Building"],["00101792","Gardener I"],["00101793","Gardener I"],["00101794","Gardener I"],["00101797","Records Management Officer"],["00101798","Senior Medical Technologist II"],["00101799","Senior Medical Technologist II"],["00101801","Senior Office Attendant"],["00101802","Senior Secretary"],["00101807","Administrative Assistant II"],["00101814","Administrative Secretary"],["00101815","Laboratory Attendant I"],["00101816","Chief Office Attendant"],["00101823","Junior Laboratory Technician"],["00101826","Departmental Attendant I"],["00101827","Chief Departmental Attendant"],["00101830","Departmental Attendant I"],["00101831","Senior Workshop Technician"],["00101837","Snr Lecturer Non-Med To Bar"],["00101839","Maintenance Officer"],["00101845","Driver/Attendant"],["00101846","Plant Operator III"],["00101847","Laboratory Attendant I"],["00101848","Senior Laboratory Attendant"],["00101849","Car Park Attendant"],["00101856","Senior Office Attendant"],["00101883","Senior Admin. Assistant II"],["00101884","Administrative Assistant II"],["00101886","Secretary I"],["00101887","Senior Medical Technologist II"],["00101888","Medical Photographer"],["00101889","Cleaner"],["00101892","Senior Laboratory Attendant"],["00101893","Records Management Assistant I"],["00101894","Departmental Attendant II"],["00101900","Information Technologist II"],["00101905","Office Attendant II"],["00101906","Laboratory Attendant I"],["00101909","Administrative Secretary"],["00101912","Customer Service Officer"],["00101915","Records Management Assistant I"],["00101916","Lecturer"],["00101917","Administrative Assistant II"],["00101918","Senior Departmental Attendant"],["00101920","Office Manager II"],["00101921","Information Technology Officer"],["00101922","Lecturer"],["00101925","Records Management Assistant I"],["00101928","Administrative Secretary"],["00101929","Administrative Secretary"],["00101931","Office Manager II"],["00101932","Office Attendant I"],["00101933","Information Technologist III"],["00101934","Senior Secretary"],["00101935","Teller"],["00101944","Accounting Clerk II"],["00101949","Administrative Secretary"],["00101957","Office Attendant II"],["00101958","Administrative/Health Asst. I"],["00101959","Records Management Assistant I"],["00101964","Binder IV"],["00101966","Secretary III"],["00101967","Cartographic Technologist"],["00101968","Records Management Assistant I"],["00101971","Information Technology Officer"],["00101972","Information Technology Officer"],["00101974","Lecturer"],["00101979","Lecturer"],["00101980","Teaching Assistant"],["00101981","Assistant Lecturer"],["00101985","Mortician"],["00101991","Administrative Officer"],["00101992","Assistant Lecturer"],["00101999","Senior Budget Analyst"],["00102000","Senior Legal Officer I"],["00102001","Senior Admin. Assistant I"],["00102004","Senior Racing Analyst"],["00102011","Records Management Assistant I"],["00102012","Information Technology Officer"],["00102013","Teaching Assistant"],["00102014","Senior Project Officer I"],["00102016","Dir.Strategic Planning&EntMgmt"],["00102017","Lecturer"],["00102019","Senior Lecturer"],["00102021","Medical Officer"],["00102023","Chief Laboratory Attendant"],["00102024","Janitor I"],["00102025","Office Attendant II"],["00102043","Custodian Attendant"],["00102044","Information Technologist II"],["00102046","Facilities Officer II"],["00102047","Administrative Officer"],["00102051","Senior Groundsman"],["00102057","Assistant Manager, Bookshop"],["00102058","Clerical Assistant III"],["00102059","Administrative Assistant II"],["00102061","Technical Manager"],["00102063","Senior Secretary"],["00102067","Clerical Assistant III"],["00102072","Clerical Assistant III"],["00102076","Accounts Payable Officer"],["00102077","Budget/Accounts Analyst"],["00102080","Records Management Assistant 2"],["00102085","Accounts Payable Officer"],["00102086","Assistant Manager"],["00102087","Purchasing Officer (Loc&Forgn)"],["00102090","Stores Assistant II"],["00102091","Chief Laboratory Attendant"],["00102092","Security Assistant"],["00102094","Senior Secretary"],["00102100","Manager"],["00102103","Driver lll"],["00102105","Senior Admin. Assistant II"],["00102106","Grounds Assistant I"],["00102107","Sanitary Worker I"],["00102108","Sanitary Worker I"],["00102109","Lecturer"],["00102115","Asst Reg-Recruitment&Admission"],["00102116","Senior Foreman"],["00102117","Plumber"],["00102118","Plumber"],["00102122","Senior Secretary"],["00102124","Purchases Clerk II"],["00102125","Purchases Clerk II"],["00102126","Staff Benefits Officer I"],["00102127","Human Resource Assistant II"],["00102130","Billings & Collections Officer"],["00102131","Billings & Collections Officer"],["00102132","Security Attendant"],["00102133","Senior Supervisor-Building"],["00102144","Records Management Assistant I"],["00102156","Engineer"],["00102165","Driver lll"],["00102166","Senior Admin. Assistant I"],["00102175","Laboratory Attendant I"],["00102190","Administrative Officer"],["00102191","Administrative Officer"],["00102196","Cleaner"],["00102197","Administrative Assistant II"],["00102202","Teaching Assistant"],["00102205","Superintendent of Works"],["00102206","Deputy Estate Mgr (Fleet Mgmt)"],["00102207","Superintendent of Works"],["00102208","Lecturer"],["00102209","Senior Admin. Assistant II"],["00102215","Information Technology Officer"],["00102216","Information Technology Officer"],["00102218","Lecturer"],["00102221","Audio-Visual Assistant"],["00102226","Foreman - Grounds"],["00102239","Research Assistant"],["00102240","Lecturer"],["00102241","Lecturer"],["00102242","Lecturer"],["00102244","Assistant Lecturer"],["00102261","Administrative Officer"],["00102263","Administrative Manager"],["00102267","Director"],["00102269","Chief Office Attendant"],["00102273","Senior Admin. Officer  I"],["00102274","Driver lll"],["00102277","Billings & Collections ClerkII"],["00102279","Laundry Mgr/Operations Supvr."],["00102283","Administrative Secretary"],["00102288","Teaching Assistant"],["00102293","Lecturer"],["00102298","Assistant Lecturer"],["00102299","Lecturer"],["00102300","Senior Lecturer"],["00102346","Research Fellow"],["00102347","Business Development Officer"],["00102350","Departmental Attendant I"],["00102361","Senior Administrative Officer"],["00102370","Office Attendant I"],["00102372","Information Tech. Officer II"],["00102373","Manager, Bookshop"],["00102375","Senior Engineer"],["00102378","Assistant Racing Chemist"],["00102382","Secretary II"],["00102387","Information Technologist II"],["00102388","Payment Processing Officer"],["00102391","Records Management Assistant I"],["00102392","Customer Service Officer II"],["00102395","Senior Admin. Assistant II"],["00102401","Student Assistant"],["00102412","Chief Medical Technologist"],["00102413","Customer Service Officer I"],["00102415","Customer Service Officer II"],["00102416","Senior Departmental Attendant"],["00102417","Gardener I"],["00102419","Janitor III"],["00102430","Driver lll"],["00102447","Counsellor"],["00102448","Part-time Medical Officer"],["00102449","Library Assistant I"],["00102454","Teaching Assistant"],["00102458","Lecturer"],["00102459","Adjunct Lecturer"],["00102460","Functional Analyst III"],["00102461","Functional Analyst III"],["00102480","Part-time Student Counsellor"],["00102481","Adjunct Assistant Lecturer"],["00102482","Administrative Officer"],["00102488","Scientific Officer"],["00102496","Student Assistant"],["00102502","Adjunct Tutor"],["00102505","Adjunct Lecturer"],["00102508","Director"],["00102518","Adjunct Senior Lecturer"],["00102540","Driver/Handyman"],["00102568","Senior Computer Technologist I"],["00102571","Laboratory Technician"],["00102590","Accounting Officer I"],["00102598","Marketing & Sales Assistant"],["00102599","Adjunct Tutor"],["00102615","Prosector"],["00102619","Adjunct Tutor"],["00102624","Adjunct Tutor"],["00102626","Laboratory Technician"],["00102627","Adjunct Lecturer"],["00102628","Administrative Officer"],["00102631","Documentation Specialist"],["00102640","Part-time Demonstrator"],["00102644","Laboratory Technologist"],["00102646","Senior Laboratory Technologist"],["00102647","Teller"],["00102651","Associate Lecturer"],["00102653","Associate Lecturer"],["00102654","Associate Lecturer"],["00102655","Associate Lecturer"],["00102662","Senior Financial Officer"],["00102663","Administrative Secretary I"],["00102665","Receptionist/Telephone Operato"],["00102666","Administrative Secretary"],["00102667","Assistant Research Scientist"],["00102668","Administrative Officer I"],["00102673","Senior Admin. Assistant II"],["00102674","Foreign Language Instructor"],["00102676","Scientific Officer"],["00102677","Chief Scientific Officer"],["00102682","Senior Admin. Assistant I"],["00102687","Associate Lecturer"],["00102689","Manager"],["00102690","Snr. Information Tech. Officer"],["00102691","Associate Lecturer"],["00102692","Customer Service Officer II"],["00102693","Payment Processing Officer"],["00102701","Operations Supervisor"],["00102702","Operations Supervisor"],["00102705","Research Assistant"],["00102709","Driver/Courier"],["00102710","Assist. Department Storekeeper"],["00102711","Billings & Collection Off. II"],["00102712","Billings & Collections Off. II"],["00102713","Marketing Intern"],["00102720","Research Assistant"],["00102721","Teaching Assistant"],["00102722","Network Manager/Engineer"],["00102728","Assistant Research Scientist"],["00102735","Cashier"],["00102736","Senior Admin. Assistant I"],["00102741","Information Technology Officer"],["00102746","Associate Lecturer"],["00102748","Janitor"],["00102751","Billings & Collections ClerkII"],["00102752","Senior Secretary"],["00102753","Secretary III"],["00102759","Electronics Technician I"],["00102762","Administrative Officer II"],["00102766","Laboratory Technician"],["00102769","Lecturer"],["00102770","Teaching Assistant"],["00102773","Assistant Sports Coordinator"],["00102783","Administrative Assistant II"],["00102784","Administrative Assistant II"],["00102786","Departmental Attendant II"],["00102790","Adjunct Lecturer"],["00102794","Senior Admin. Assistant II"],["00102798","Secretary III"],["00102805","Cleaner"],["00102810","Facilities Manager"],["00102813","Professor Non-Medical"],["00102817","Principal Director"],["00102819","Graduate Technician"],["00102820","Secretary II"],["00102821","Scientific Officer"],["00102828","Retiree (M)"],["00102829","Club Supervisor"],["00102831","Administrative Secretary"],["00102841","Administrative Officer"],["00102842","Project Officer II"],["00102846","Sports Coach"],["00102855","Contract Services - ATS"],["00102867","Research Fellow"],["00102879","Administrative Assistant I"],["00102882","Information Technology Officer"],["00102883","Information Technology Officer"],["00102885","Chief Information Officer"],["00102886","Information Technology Officer"],["00102887","Information Technology Officer"],["00102888","Information Technology Officer"],["00102889","Teaching Assistant"],["00102891","Information Technologist III"],["00102892","Information Technologist III"],["00102893","Information Technologist III"],["00102894","Information Technologist III"],["00102895","Information Technologist II"],["00102896","Information Technologist II"],["00102898","Information Technology Officer"],["00102900","Consultant"],["00102902","Gardener"],["00102905","Information Technology Officer"],["00102909","Adjunct Lecturer"],["00102916","Associate Lecturer"],["00102922","Senior Planning Officer I"],["00102923","Manager-Mona Technology Park"],["00102933","Digital Marketing Officer"],["00102948","Lecturer"],["00102952","Filing Clerk"],["00102963","Multimedia Technologist III"],["00102965","Lecturer"],["00102974","Scientific Officer"],["00102978","Laboratory Technician"],["00102983","Chief Laboratory Technologist"],["00102984","Programme Co-ordinator III"],["00102985","Adjunct Lecturer"],["00102991","Administrative Secretary"],["00103004","Senior Admin. Assistant II"],["00103012","Senior Admin. Assistant II"],["00103015","Telephone Operator/Receptionst"],["00103032","Driver III/Attendant"],["00103043","Assistant Manager"],["00103045","Assistant Manager"],["00103052","Instructor"],["00103053","Instructor"],["00103054","Instructor"],["00103055","Instructor"],["00103056","Instructor"],["00103057","Instructor"],["00103059","Instructor"],["00103061","Instructor"],["00103062","Instructor"],["00103064","Instructor"],["00103071","Clerical Assistant III"],["00103086","Lecturer"],["00103087","Lecturer"],["00103092","Information Tech. Officer II"],["00103093","Director"],["00103099","Senior Laboratory Attendant"],["00103106","Guild Manager"],["00103120","Senior Research Fellow"],["00103124","Billings & Collections Officer"],["00103125","Purchasing Officer (Loc&Forgn)"],["00103132","Administrative Assistant II"],["00103134","Adjunct Senior Lecturer"],["00103146","Staff Nurse"],["00103147","Administrative Manager"],["00103148","Secretary/Receptionist"],["00103151","Senior Financial Analyst"],["00103157","Senior Financial Analyst"],["00103177","Adjunct Professor"],["00103187","Lecturer"],["00103198","Scientific Officer"],["00103214","Administrative Officer I"],["00103215","Administrative Secretary"],["00103226","Lecturer"],["00103249","Lecturer"],["00103256","Administrative Secretary"],["00103257","Clerical Assistant III"],["00103258","Clerical Assistant I"],["00103275","Billings Clerk"],["00103276","Clerical Assistant II"],["00103277","Grounds Assistant I"],["00103280","Clerical Assistant II"],["00103281","Senior Secretary"],["00103290","Lecturer"],["00103294","Senior Lecturer"],["00103295","Graduate Technician Grade I"],["00103304","Senior Scientific Officer"],["00103319","Office Attendant"],["00103321","Assistant Lecturer"],["00103324","Senior Admin. Assistant I"],["00103365","Administrative Assistant I"],["00103368","Information Technology Officer"],["00103373","Planning Officer II"],["00103379","Lodgings Officer"],["00103380","Lab Technician"],["00103392","Assistant Analyst"],["00103394","Scientific Officer"],["00103395","Editorial Officer"],["00103402","Professor"],["00103410","Administrative Assistant II"],["00103414","Clerical Assistant III"],["00103427","Information Technology Officer"],["00103431","Cashier"],["00103438","Office Attendant/Gardener"],["00103443","Adjunct Lecturer"],["00103449","Senior Research Fellow"],["00103452","Librarian II"],["00103454","Programme Officer II"],["00103463","Administrative Assistant II"],["00103481","Customer Service Officer"],["00103514","Accounting Officer I"],["00103521","Assistant Research Scientist"],["00103522","Information Technician II"],["00103523","Librarian II"],["00103525","Lecturer"],["00103541","Director HRMD"],["00103545","Adjunct Senior Lecturer"],["00103555","Lecturer"],["00103556","Research Assistant"],["00103557","Senior HR Assistant II"],["00103559","Police Officer"],["00103560","Lecturer"],["00103563","Lecturer"],["00103564","Human Resource Officer"],["00103565","Human Resource Officer"],["00103567","Senior Lecturer"],["00103568","Lecturer"],["00103569","Lecturer"],["00103570","Lecturer"],["00103573","Records Management Assistant I"],["00103575","Visibility Officer"],["00103585","Pharmacy Technician"],["00103586","Customer Service Supervisor I"],["00103613","Lecturer"],["00103628","Senior Admin. Assistant II"],["00103633","Chief Forensic DNA Analyst"],["00103646","Senior HR Assistant II"],["00103647","Senior HR Assistant II"],["00103648","Human Resource Assistant II"],["00103649","Senior HR Assistant I"],["00103650","Senior HR Assistant I"],["00103652","Human Resource Assistant II"],["00103653","Senior HR Assistant II"],["00103654","Human Resource Assistant II"],["00103655","Senior HR Assistant II"],["00103656","Senior HR Assistant II"],["00103657","Customer Service Officer"],["00103660","Records Management Assistant 2"],["00103661","Senior HR Assistant II"],["00103662","Human Resource Assistant II"],["00103663","Customer Serv. Representative"],["00103665","Human Resource Assistant II"],["00103666","Functional Analyst II"],["00103667","Human Resource Analyst"],["00103668","Senior HR Assistant II"],["00103669","Information Technology Officer"],["00103677","Senior Admin. Assistant II"],["00103684","Manager - Work Control Centre"],["00103685","Handyman I"],["00103687","Marketing & Business Dev. Offi"],["00103695","Lecturer"],["00103697","Lecturer"],["00103705","Administrative Secretary"],["00103706","Senior Lecturer"],["00103707","Senior Lecturer"],["00103708","Teaching Assistant"],["00103709","Teaching Assistant"],["00103710","Teaching Assistant"],["00103711","Laboratory Technician"],["00103712","Laboratory Technician"],["00103714","Research Assistant"],["00103715","Secretary III"],["00103716","Lecturer"],["00103717","Lecturer"],["00103718","Lecturer"],["00103719","Senior Lecturer"],["00103720","Lecturer"],["00103721","Lecturer"],["00103722","Lecturer"],["00103723","Chief Scientific Officer"],["00103727","Lecturer"],["00103728","Lecturer"],["00103732","Clerical Assistant III"],["00103733","Office Attendant I"],["00103734","Secretary II"],["00103735","Lecturer"],["00103736","Senior Lecturer"],["00103739","Part-time Demonstrator"],["00103746","Assistant Lecturer"],["00103747","Information Technician II"],["00103749","Business Manager"],["00103752","Receptionist/Typist"],["00103758","Legal Officer I"],["00103775","Senior Admin. Assistant I"],["00103776","Assistant Lecturer"],["00103777","Assistant Lecturer"],["00103778","Assistant Lecturer"],["00103779","Assistant Lecturer"],["00103780","Assistant Lecturer"],["00103781","Lecturer"],["00103782","Lecturer"],["00103783","Research and Planning Officer"],["00103785","Lecturer"],["00103788","Lecturer"],["00103792","Information Technologist II"],["00103793","Information Technologist II"],["00103794","Information Technologist II"],["00103795","Information Technologist II"],["00103797","Information Technologist II"],["00103799","Information Technologist II"],["00103800","Information Technologist I"],["00103801","Information Technologist II"],["00103802","Information Tech. Officer I"],["00103803","Lecturer"],["00103818","Business/Functional Analyst"],["00103819","Laboratory Attendant I"],["00103820","Laboratory Attendant I"],["00103825","Assistant Lecturer"],["00103826","Administrative Assistant I"],["00103834","Adjunct Senior Lecturer"],["00103835","Adjunct Lecturer"],["00103836","Adjunct Senior Lecturer"],["00103885","Part-time Demonstrator"],["00103903","Nurse's Aide"],["00103912","Lecturer Non-Medical To Bar"],["00103915","Senior Office Attendant"],["00103917","Senior Admin. Assistant I"],["00103919","Lecturer"],["00103920","Lecturer"],["00103921","Driver I"],["00103922","Office Attendant I"],["00103923","Secretary III"],["00103935","Hall Assistant"],["00103939","Teaching Assistant"],["00103940","Professor of Mathematics"],["00103945","Human Resource Officer"],["00103957","Support Services Assistant II"],["00103968","Senior Secretary"],["00103971","Functional Analyst III"],["00103972","Functional Analyst 2"],["00103973","Administrative Assistant II"],["00103980","Tele Operator/Receptionist"],["00103985","Lecturer"],["00103993","Lecturer"],["00103996","Adjunct Lecturer"],["00104008","Administrative Secretary"],["00104022","Lecturer"],["00104023","Lecturer"],["00104025","Lecturer"],["00104026","Administrative Secretary"],["00104027","Administrative Secretary"],["00104030","Lecturer"],["00104034","Lecturer"],["00104035","Lecturer"],["00104038","Customer Service Officer II"],["00104039","Customer Service Officer II"],["00104040","Billings & Collection Off. II"],["00104047","Senior Admin. Assistant II"],["00104049","Lecturer"],["00104053","Lecturer"],["00104054","Lecturer"],["00104055","Lecturer"],["00104060","Lecturer Non-Medical To Bar"],["00104062","Administrative Officer"],["00104067","Lecturer"],["00104070","Information Technologist III"],["00104071","Lecturer Medical To Bar"],["00104075","Lecturer"],["00104080","Administrative Secretary"],["00104082","Lecturer"],["00104084","Lecturer"],["00104089","Administrative Officer III"],["00104096","Administrative Officer II"],["00104104","Secretary I"],["00104105","Student Services & Dev Manager"],["00104112","Sabbatical Leave Replacement"],["00104114","Lecturer"],["00104118","Sabbatical Leave Replacement"],["00104119","Sabbatical Leave Replacement"],["00104123","Lecturer Non-Medical To Bar"],["00104124","Administrative Officer I"],["00104125","Office Attendant I"],["00104141","Senior Departmental Attendant"],["00104143","Departmental Attendant II"],["00104151","Cashier I"],["00104152","Cash Management Supervisor"],["00104156","Student Services & Dev Manager"],["00104157","Director"],["00104158","Lecturer"],["00104164","Driver I"],["00104170","Administrative Secretary"],["00104171","Pharmacy Technician"],["00104177","Journals/Payables Officer"],["00104197","Administrative Assistant I"],["00104214","Clerical Assistant I"],["00104217","Senior Admin. Assistant II"],["00104221","Office Attendant I"],["00104224","Functional Analyst"],["00104227","Research Officer"],["00104228","Lecturer"],["00104233","Assistant Registrar-Award&Cert"],["00104234","Billings & Collections Officer"],["00104238","Senior Secretary"],["00104247","Administrative Secretary"],["00104251","Chief Laboratory Technologist"],["00104288","Administrative Assistant I"],["00104293","Senior Admin. Assistant I"],["00104294","Senior Laboratory Technologist"],["00104306","Administrative Officer II"],["00104309","Project Officer I"],["00104327","Room Attendant"],["00104328","Room Attendant"],["00104330","Operations Supervisor"],["00104342","Administrative Officer II"],["00104345","Lecturer"],["00104349","Office Attendant I"],["00104355","Accounting Officer"],["00104361","Senior Secretary"],["00104365","Coordinator II"],["00104387","Adjunct Tutor"],["00104391","Gardener I"],["00104395","Customer Service Officer I"],["00104411","Operations Supervisor"],["00104413","Adjunct Lecturer (Mgmt Stud)"],["00104421","Office Manager II"],["00104442","Director"],["00104462","Office Attendant I"],["00104468","Lecturer"],["00104475","Lecturer"],["00104484","Adjunct Assistant Lecturer"],["00104497","Adjunct Assistant Lecturer"],["00104515","Adjunct Lecturer"],["00104517","Adjunct Senior Lecturer"],["00104541","Adjunct Lecturer"],["00104558","Adjunct Lecturer"],["00104583","Adjunct Lecturer"],["00104621","Adjunct Lecturer"],["00104698","Adjunct Lecturer"],["00104753","Driver/Courier"],["00104760","Senior Research Fellow"],["00104767","Associate Lecturer"],["00104775","Adjunct Clinical Preceptor"],["00104777","Adjunct Assistant Lecturer"],["00104791","Associate Lecturer"],["00104795","Lecturer"],["00104796","Lecturer"],["00104797","Lecturer"],["00104798","Lecturer"],["00104799","Lecturer"],["00104800","Secretary III"],["00104809","Staff Nurse"],["00104810","Grounds Assistant I"],["00104813","Gardener II"],["00104814","Office Attendant I"],["00104821","Senior Office Attendant"],["00104826","Senior Admin. Assistant II"],["00104837","Retiree Spouse (M)"],["00104847","Bus. Continuity & Emerg. Plann"],["00104851","Janitor"],["00104854","Adjunct Lecturer"],["00104855","Lecturer"],["00104856","Lecturer"],["00104857","Lecturer"],["00104860","Lecturer"],["00104861","Lecturer"],["00104862","Lecturer"],["00104863","Lecturer"],["00104870","Lecturer Non-Medical To Bar"],["00104871","Research Scientist"],["00104877","Lecturer"],["00104881","Administrative Secretary"],["00104891","Research Assistant"],["00104898","Clerical Assistant III"],["00104900","Marketing/Technical Rep."],["00104905","Departmental Attendant II"],["00104909","Administrative Assistant I"],["00104910","Accounting Officer II"],["00104914","Senior Admin. Assistant II"],["00104915","Student Assistant"],["00104919","Associate Lecturer"],["00104940","Senior Admin. Assistant I"],["00104943","Dean"],["00104944","Lecturer"],["00104956","Editor"],["00104964","Lecturer"],["00104973","Operations Supervisor"],["00104982","Administrative Assistant I"],["00104985","Research Assistant"],["00104986","Grounds Assistant II"],["00104988","Lecturer Medical To Bar"],["00104994","Customer Service Rep."],["00104995","Research Assistant"],["00105000","Asst. Lecturer - Non Medical"],["00105004","Executive Director"],["00105005","Snr Lecturer Non-Med To Bar"],["00105017","Lecturer"],["00105019","Senior Lecturer"],["00105023","Lecturer Non-Medical To Bar"],["00105024","Clerical Assistant III"],["00105025","Lecturer Non-Medical To Bar"],["00105027","Snr Lecturer Non-Med To Bar"],["00105028","Administrative Secretary"],["00105029","Instructor"],["00105030","Lecturer"],["00105031","Lecturer Non-Medical To Bar"],["00105033","Lecturer Non-Medical To Bar"],["00105034","Lecturer Non-Medical To Bar"],["00105036","Lecturer Non-Medical To Bar"],["00105037","Snr Lecturer Non-Med To Bar"],["00105038","Lecturer"],["00105040","Secretary III"],["00105042","Lecturer Non-Medical To Bar"],["00105043","Lecturer Non-Medical To Bar"],["00105044","Lecturer Non-Medical To Bar"],["00105045","Senior Admin. Assistant I"],["00105046","Lecturer Non-Medical To Bar"],["00105049","Janitor"],["00105069","Academic Director"],["00105075","Laboratory Attendant I"],["00105088","Office Manager I"],["00105090","Senior Departmental Attendant"],["00105091","Watchman"],["00105092","Senior Office Attendant"],["00105093","Senior Departmental Attendant"],["00105094","Senior Office Attendant"],["00105098","Senior Admin. Assistant I"],["00105102","Contract Services - ATS"],["00105103","Senior Departmental Attendant"],["00105105","Information Tech. Officer II"],["00105106","Senior Computer Technologist I"],["00105108","Administrative Assistant"],["00105118","Research Assistant"],["00105125","Clerical Assistant II"],["00105132","Lecturer"],["00105152","Community Action Manager"],["00105155","Programme Coordinator"],["00105157","Senior Secretary"],["00105158","Senior Office Attendant"],["00105161","Senior Office Attendant"],["00105166","Student Services & Dev Manager"],["00105172","Environmental & Utilities Off."],["00105174","Administrative Officer III"],["00105210","Marketing Officer"],["00105211","Contract Services -ASA"],["00105213","Research Assistant"],["00105215","Adjunct Lecturer"],["00105221","Administrative Assistant I"],["00105232","Administrative Assistant II"],["00105233","Lecturer Non-Medical To Bar"],["00105239","Deputy Director"],["00105243","Multimedia Technologist I"],["00105245","Multimedia Apps Developer I"],["00105246","Multimedia Apps Developer I"],["00105248","Inform. Tech Support Analyst I"],["00105249","Inform. Tech Support Analyst I"],["00105252","Data Security Administrator"],["00105254","Inform. Tech Support Analyst I"],["00105255","Inform. Tech Support Analyst I"],["00105282","Contract Services - ATS"],["00105287","Personal & Prof. Dev. Officer"],["00105309","Research Assistant"],["00105317","Research Assistant"],["00105328","Administrative Secretary"],["00105339","Legal&Administrative Secretary"],["00105340","Cashier"],["00105342","Janitor"],["00105346","Director II"],["00105347","Research Assistant"],["00105348","Part-time Medical Officer"],["00105357","Information Tech. Officer II"],["00105362","Information Technologist I"],["00105364","Office Attendant I"],["00105365","General Worker I/II"],["00105367","Laboratory Attendant II"],["00105368","Office Attendant II"],["00105369","Grounds/Building Supervisor"],["00105370","Gardener II"],["00105374","Secretary III"],["00105377","Lecturer"],["00105383","Information Technologist I"],["00105384","Customer Service Officer"],["00105386","Research Fellow"],["00105392","Research Manager"],["00105402","Technical Assistant I"],["00105407","Research Assistant"],["00105408","Teaching Assistant"],["00105409","Instructor"],["00105410","Research Fellow"],["00105411","Senior Secretary"],["00105412","Laboratory Technician"],["00105413","Lecturer"],["00105427","Administrative Secretary"],["00105429","Research Assistant"],["00105430","Student Recru. & Mkting Cood"],["00105434","Lecturer"],["00105438","Senior Project Officer II"],["00105447","Senior Admin. Assistant I"],["00105449","Laboratory Attendant I"],["00105450","Contracts Officer"],["00105454","Administrative Assistant II"],["00105457","Adjunct Lecturer (SocPsycSW)"],["00105458","Adjunct Lecturer (FHE Deans)"],["00105462","Research Assistant"],["00105479","Student DevelopmentCoordinator"],["00105484","Secretary III"],["00105490","DNA Analyst I (FTC)"],["00105504","Administrative Assistant I"],["00105510","Senior Lecturer"],["00105515","Junior Prosector"],["00105518","Student Services Manager"],["00105521","Adjunct Lecturer"],["00105522","Adjunct Senior Lecturer"],["00105523","Research Assistant"],["00105536","Laboratory Technician"],["00105539","Cashier"],["00105540","Cashier"],["00105551","Systems Analyst"],["00105552","Decision Support Analyst"],["00105553","Sports Co-ordinator"],["00105555","Facilities Officer"],["00105565","Scientific Officer"],["00105581","Administrative Assistant I"],["00105582","Information Technologist I"],["00105583","Information Technologist I"],["00105584","Deputy Superintendent of Works"],["00105585","Information Tech. Officer II"],["00105587","Assistant Manager"],["00105588","Senior Analyst"],["00105589","Management Accountant"],["00105598","Professor of Strategic Mgt"],["00105603","Lecturer"],["00105604","Lecturer"],["00105607","Senior Secretary"],["00105608","Assistant Lecturer - Medical"],["00105609","Snr Lecturer Non-Med To Bar"],["00105610","Lecturer"],["00105614","Personal & Pro Devmnt Officer"],["00105615","Lecturer"],["00105616","Lecturer"],["00105618","Lecturer Non-Medical To Bar"],["00105619","Asst. Lecturer - Non Medical"],["00105620","Lecturer Non-Medical To Bar"],["00105621","Asst. Lecturer - Non Medical"],["00105622","Lecturer Non-Medical To Bar"],["00105624","Lecturer Non-Medical To Bar"],["00105625","Lecturer Non-Medical To Bar"],["00105626","Lecturer Non-Medical To Bar"],["00105627","Lecturer Non-Medical To Bar"],["00105630","Lecturer Non-Medical To Bar"],["00105631","Lecturer Non-Medical To Bar"],["00105632","Lecturer Non-Medical To Bar"],["00105633","Lecturer Non-Medical To Bar"],["00105635","Lecturer Non-Medical To Bar"],["00105636","Lecturer Non-Medical To Bar"],["00105637","Lecturer Non-Medical To Bar"],["00105639","Lecturer Non-Medical To Bar"],["00105640","Teller"],["00105641","Senior Lecturer"],["00105643","Driver lll"],["00105644","Driver lll"],["00105656","Student Services & Develop Mgr"],["00105657","Customer Service Officer I"],["00105667","Laboratory Technologist"],["00105678","Senior Groundsman"],["00105680","Scientific Officer"],["00105681","Student Services & Dev.Manager"],["00105682","Handyman I"],["00105684","Senior Admin. Assistant I"],["00105685","Operations & Support Serv. Man"],["00105687","Receptionist/Typist"],["00105689","Police Officer"],["00105690","Police Officer"],["00105691","Police Officer"],["00105692","Police Officer"],["00105693","Police Officer"],["00105694","Police Officer"],["00105695","Police Officer"],["00105696","Police Officer"],["00105700","Office Attendant I"],["00105702","Research Assistant"],["00105705","Cashier I"],["00105706","Records Management Assistant I"],["00105707","Adjunct Lecturer"],["00105711","Grounds Assistant II"],["00105717","Scientific Officer - Outreach"],["00105718","Office Attendant I"],["00105739","Research Assistant"],["00105756","Laundry Attendant"],["00105763","Assistant Lecturer"],["00105765","Sports  Psychologist"],["00105766","Dental Hygienist"],["00105767","Dental Assistant"],["00105768","Dental Therapist"],["00105783","Senior Admin. Assistant I"],["00105786","Dir Grad Studies & Research"],["00105788","Administrative Assistant II"],["00105799","Fixed Term Contract - ASA"],["00105801","Director"],["00105802","Lecturer Medical To Bar"],["00105804","Senior Secretary"],["00105805","Administrative Secretary"],["00105822","Laboratory Technician"],["00105832","Senior Admin. Assistant II"],["00105833","Dental Assistant"],["00105835","Dental Assistant"],["00105837","Senior Laboratory Attendant"],["00105838","Dental Laboratory Technician"],["00105839","Dental Laboratory Technician"],["00105840","Storekeeper"],["00105841","Senior Office Attendant"],["00105842","Cashier I"],["00105843","Clerical Assistant III"],["00105848","Office Attendant I"],["00105855","Lecturer Non-Medical To Bar"],["00105866","Student Services Manager"],["00105870","Instructor"],["00105871","Sabbatical Leave Replacement"],["00105872","Accounting Officer I"],["00105873","Office Attendant"],["00105875","Technical Assistant II"],["00105876","Office Attendant I"],["00105877","Clerical Asst III/Tel Operator"],["00105879","Clinical Physical Therapist"],["00105881","Grounds Assistant I"],["00105882","Lecturer Medical To Bar"],["00105883","Clinical Physical Therapist"],["00105885","Lecturer Non-Medical Above Bar"],["00105886","Research Assistant"],["00105903","Lecturer Non-Medical To Bar"],["00105912","Car Park Attendant"],["00105918","Professor - Medical"],["00105927","Dental Assistant"],["00105940","Legal&Administrative Secretary"],["00105952","Professor Non-Medical"],["00105960","Accounting Officer II"],["00105961","Laboratory Technologist"],["00105963","Research Assistant"],["00105968","Budget/Accounts Analyst"],["00105973","Lecturer Non-Medical To Bar"],["00105974","Instructor"],["00105975","Instructor"],["00105977","Administrative Assistant I"],["00105978","Lecturer Non-Medical To Bar"],["00105979","Instructor"],["00105980","Instructor"],["00105982","Administrative Secretary"],["00105986","Accounting Officer I"],["00105991","Senior Admin. Assistant I"],["00105992","Senior Executive Secretary"],["00105993","Dean"],["00105998","Administrative Officer I"],["00105999","Electrical Engineer"],["00106002","Office Attendant I"],["00106004","Personal Assistant"],["00106006","Administrative Assistant II"],["00106008","Office Attendant I"],["00106010","Administrative Assistant I"],["00106012","Senior  Admin. Secretary"],["00106016","Administrative Assistant II"],["00106017","Administrative Assistant I"],["00106020","Office Attendant I"],["00106025","Senior Laboratory Technologist"],["00106026","Senior Laboratory Technologist"],["00106030","Lecturer Non-Medical To Bar"],["00106033","Chief Laboratory Technologist"],["00106035","Chief Laboratory Technologist"],["00106038","Adjunct Lecturer"],["00106044","Snr Lecturer Non-Med To Bar"],["00106046","Lecturer Non-Medical To Bar"],["00106047","Lecturer Non-Medical To Bar"],["00106048","Lecturer Non-Medical To Bar"],["00106049","Lecturer Non-Medical To Bar"],["00106053","Lecturer Non-Medical To Bar"],["00106054","Lecturer Non-Medical To Bar"],["00106055","Lecturer Non-Medical To Bar"],["00106056","Lecturer Non-Medical To Bar"],["00106057","Snr Lecturer Non-Med To Bar"],["00106061","Sabbatical Leave Replacement"],["00106062","Sabbatical Leave Replacement"],["00106063","Lecturer Non-Medical Above Bar"],["00106064","Senior Admin. Assistant II"],["00106066","Sabbatical Leave Replacement"],["00106067","Lecturer Non-Medical Above Bar"],["00106068","Senior Secretary"],["00106071","Research Assistant"],["00106077","Lecturer Non-Medical To Bar"],["00106078","Lecturer Non-Medical To Bar"],["00106079","Lecturer Non-Medical To Bar"],["00106080","Lecturer Non-Medical To Bar"],["00106081","Sabbatical Leave Replacement"],["00106084","Office Attendant I"],["00106087","Senior Admin. Assistant I"],["00106100","Junior Analyst"],["00106112","Lecturer Non-Medical To Bar"],["00106117","Operations Supervisor"],["00106122","Customer Service Officer I"],["00106123","Cashier I"],["00106128","Administrative Assistant I"],["00106136","Lecturer Non-Medical Above Bar"],["00106137","Lecturer Non-Medical Above Bar"],["00106138","Lecturer Non-Medical Above Bar"],["00106139","Lecturer Non-Medical Above Bar"],["00106140","Lecturer Non-Medical Above Bar"],["00106147","Sabbatical Leave Replacement"],["00106155","Lecturer Non-Medical To Bar"],["00106157","Lecturer Non-Medical To Bar"],["00106173","Sabbatical Leave Replacement"],["00106174","Office Attendant"],["00106179","Senior Admin. Assistant I"],["00106190","Comm. Outreach & Business Mgr"],["00106193","Office Attendant I"],["00106195","Technical Assistant III"],["00106196","Office Manager II"],["00106208","Professor - Medical"],["00106225","Lecturer Medical To Bar"],["00106226","Administrative Officer I"],["00106229","Lecturer Medical To Bar"],["00106233","Administrative Assistant I"],["00106235","Office Attendant I"],["00106239","Secretary III"],["00106240","Ground/Handyman"],["00106241","Lecturer"],["00106243","Lecturer"],["00106244","Lecturer"],["00106245","Lecturer"],["00106249","Lecturer"],["00106256","Student Assistant"],["00106259","Lecturer Non-Medical To Bar"],["00106260","Administrative Secretary"],["00106308","Office Attendant I"],["00106316","Sabbatical Leave Replacement"],["00106318","Lecturer-Music"],["00106319","Lecturer - Cultural Studies"],["00106320","Lecturer -Cultural & Creative"],["00106323","Grounds Assistant/Attendant"],["00106326","Gym Attendant"],["00106330","Fitness Trainer"],["00106331","Team Manager"],["00106336","Facilities Supervisor"],["00106341","Strategic Development Officer"],["00106344","Office Attendant I"],["00106347","Lecturer Non-Medical To Bar"],["00106348","Lecturer Non-Medical To Bar"],["00106349","Administrative Assistant II"],["00106355","Lecturer (Health Economics)"],["00106358","Technical Assistant I"],["00106366","Senior Admin. Assistant I"],["00106372","Adjunct Senior Lecturer"],["00106377","Project Manager II"],["00106378","Administrative Assistant I"],["00106385","Maintenance Supervisor"],["00106387","Asst Reg-Intl&RegionalStudent"],["00106391","Deputy Campus Registrar"],["00106392","Clerical Assistant III"],["00106416","Lecturer"],["00106417","Lecturer"],["00106419","Senior Lecturer"],["00106420","Secretary III"],["00106427","Outreach Officer"],["00106431","Lecturer"],["00106438","DNA Analyst"],["00106461","Assistant Manager"],["00106462","Billings & Collections Officer"],["00106465","Accounting Supervisor"],["00106466","Revenue Analyst II"],["00106467","Accounting Assistant"],["00106471","Customer Service Rep."],["00106472","Human Resource Assistant II"],["00106474","Human Resource Assistant II"],["00106475","Senior HR Assistant I"],["00106486","Adjunct Lecturer"],["00106495","Adjunct Assistant Lecturer"],["00106499","Administrative Assistant II"],["00106502","Adjunct Assistant Lecturer"],["00106507","Legal Officer II"],["00106508","Manager Athletic Dev &Training"],["00106517","Adjunct Assistant Lecturer"],["00106519","Counsellor"],["00106520","Counsellor"],["00106521","Lecturer"],["00106524","Lecturer"],["00106525","Scientific Officer"],["00106532","Lecturer"],["00106533","Lecturer"],["00106539","Human Resource Assistant I"],["00106541","Human Resource Assistant II"],["00106549","Janitor I"],["00106550","Janitor I"],["00106556","Retiree (MSBM)"],["00106560","Adjunct Lecturer"],["00106563","Adjunct Lecturer"],["00106568","Quality Enhancement Officer"],["00106633","Foreign Language Instructor"],["00106634","Foreign Language Instructor"],["00106635","Foreign Language Instructor"],["00106636","Foreign Language Instructor"],["00106637","Foreign Language Instructor"],["00106650","Cashier I"],["00106672","Adjunct Professor"],["00106676","Adjunct Lecturer"],["00106687","Adjunct Professor"],["00106702","Administrative Secretary"],["00106710","Adjunct Lecturer"],["00106711","Administrative Assistant II"],["00106712","Engineer"],["00106714","Administrative Research Asst"],["00106715","Co-Investigator"],["00106716","Field Coordinator"],["00106721","Senior Scientific Officer"],["00106723","Office Attendant I"],["00106730","Project Co\u00f6rdinator"],["00106734","General Manager"],["00106735","Research Admin. Officer"],["00106736","Research Admin. Officer"],["00106737","Research Admin. Officer"],["00106745","Janitor/Attendant"],["00106746","Administrative Assistant II"],["00106750","Sexual Harrassment Comp. Coord"],["00106755","Research Assistant"],["00106757","Management Trainee"],["00106766","Senior Admin. Assistant I"],["00106777","Manager"],["00106801","Director"],["00106805","Administrative Assistant"],["00106807","Course Coordinator"],["00106812","Research Officer"],["00106813","Administrative Assistant I"],["00106815","Business Coordinator"],["00106816","Lecturer Medical To Bar"],["00106823","Events Manager"],["00106826","GIS Researcher"],["00106827","Climate/Economic Researcher"],["00106828","Climate Researcher"],["00106834","Post Doctoral Fellow"],["00106852","Research Assistant"],["00106853","Business Analyst"],["00106861","Climate Researcher"],["00106864","Programme Officer II"],["00106867","Stores Attendant"],["00106868","Senior Admin. Assistant I"],["00106882","Urban Day Centre Manager"],["00106886","Project Officer"]];
@@ -136,20 +130,14 @@
           const PAGE = 1000;
           const rows = [];
           let offset = 0;
-
           while (true) {
             const { data, error } = await sb
               .from('payroll_data')
               .select('calendar_month,employee_id,employee_name,amount,group_name,org_number,account_desc,position_desc,department_name,sal_plan')
               .order('calendar_month')
               .range(offset, offset + PAGE - 1);
-
-            if (error) {
-              console.error('loadPayroll error:', error);
-              throw new Error(`Failed to load payroll data (500): ${JSON.stringify(error)}`);
-            }
+            if (error) throw new Error(`Failed to load payroll data: ${JSON.stringify(error)}`);
             if (!data || data.length === 0) break;
-
             data.forEach(r => rows.push({
               'Pay Period End':    r.calendar_month,
               'ID':                r.employee_id,
@@ -162,17 +150,11 @@
               'Department name':   r.department_name,
               'Sal Plan':          r.sal_plan,
             }));
-
             if (data.length < PAGE) break;
             offset += PAGE;
           }
-
-          if (rows.length === 0) {
-            console.warn('loadPayroll: no data returned');
-            return null;
-          }
-          console.log(`✓ Loaded ${rows.length} employee-month rows`);
-          return rows;
+          console.log(`✓ Loaded ${rows.length} payroll rows`);
+          return rows.length === 0 ? null : rows;
         }
 
         // Parse UWI pay period date: format is DD/MM/YYYY (e.g. "1/8/2025" = 1st Aug 2025)
@@ -382,9 +364,9 @@
           const out = { oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '', employeeMapping: {} };
           if (aData) {
             aData.forEach(r => {
-              if (r.assumption_type === 'union')            out.union           = r.data || [];
-              if (r.assumption_type === 'new_hires')        out.newHires        = r.data || [];
-              if (r.assumption_type === 'one_offs')         out.oneOffs         = r.data || [];
+              if (r.assumption_type === 'union')            out.union            = r.data || [];
+              if (r.assumption_type === 'new_hires')        out.newHires         = r.data || [];
+              if (r.assumption_type === 'one_offs')         out.oneOffs          = r.data || [];
               if (r.assumption_type === 'filters')          out.startMonthFilter = (r.data && r.data.startMonthFilter) || '';
               if (r.assumption_type === 'employee_mapping') out.employeeMapping  = r.data || {};
             });
@@ -1169,12 +1151,7 @@
         function UGCSplitTab({ dataModel, processedDataCache, scenarioFilters }) {
           const UGC_CATEGORIES = ['UGC', 'non UGC', 'Donor Fund'];
           const UGC_COLORS = { 'UGC': '#3b82f6', 'non UGC': '#f97316', 'Donor Fund': '#8b5cf6', 'Unknown': '#9ca3af' };
-
-          const allMonths = useMemo(() => [
-            ...dataModel.actualMonths,
-            ...(scenarioFilters.forecasts ? dataModel.forecastMonths : [])
-          ], [dataModel, scenarioFilters.forecasts]);
-
+          const allMonths = useMemo(() => [...dataModel.actualMonths, ...(scenarioFilters.forecasts ? dataModel.forecastMonths : [])], [dataModel, scenarioFilters.forecasts]);
           const [selectedMonth, setSelectedMonth] = useState(dataModel.baseMonth);
 
           const monthlyData = useMemo(() => {
@@ -1183,7 +1160,7 @@
               const rows = processedDataCache.data.filter(d => d.month === m);
               const bycat = {};
               rows.forEach(d => {
-                const cat = d.ugcFlag || d.row['_ugcFlag'] || 'Unknown';
+                const cat = d.ugcFlag || (d.row && d.row['_ugcFlag']) || 'Unknown';
                 const key = UGC_CATEGORIES.includes(cat) ? cat : 'Unknown';
                 if (!bycat[key]) bycat[key] = { amount: 0, empIds: new Set() };
                 bycat[key].amount += d.amount;
@@ -1208,115 +1185,87 @@
             return base.filter(d => d.ugcFlag && d.ugcFlag !== '').length;
           }, [processedDataCache, dataModel.baseMonth]);
 
-          const maxBar = useMemo(() => Math.max(...monthlyData.map(r => r.total), 1), [monthlyData]);
-
-          if (!processedDataCache) return <div className="p-8 text-gray-400 text-center">No data loaded.</div>;
-
-          if (mappedCount === 0) return (
-            <div className="p-12 text-center">
-              <div className="text-5xl mb-4">🗂️</div>
-              <h3 className="text-lg font-bold text-gray-700 mb-2">No UGC Mapping Loaded</h3>
-              <p className="text-gray-500 text-sm max-w-sm mx-auto">Go to <b>Admin → Employee / UGC Mapping</b> and upload the HR position mapping file to enable this view.</p>
-            </div>
-          );
-
-          const cats = [...UGC_CATEGORIES, 'Unknown'].filter(cat => selectedRow && selectedRow[cat + '_amt'] > 0);
+          if (mappedCount === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center h-full text-center p-12">
+                <div className="text-5xl mb-4">🔵</div>
+                <h3 className="text-xl font-bold text-gray-700 mb-2">No Employee Mapping Loaded</h3>
+                <p className="text-gray-500 max-w-sm">Go to <strong>Admin → Employee / UGC Mapping</strong> and upload your Mapping file to classify employees as UGC, non UGC, or Donor Fund.</p>
+              </div>
+            );
+          }
 
           return (
-            <div className="p-6 overflow-y-auto flex-grow bg-gray-50/50">
-              <div className="max-w-5xl mx-auto space-y-6">
-                {/* Summary cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[...UGC_CATEGORIES, 'Unknown'].map(cat => {
-                    const amt = selectedRow?.[cat + '_amt'] ?? 0;
-                    const hc  = selectedRow?.[cat + '_hc']  ?? 0;
-                    const pct = selectedRow?.[cat + '_pct'] ?? 0;
-                    if (amt === 0) return null;
-                    return (
-                      <div key={cat} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                        <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{color: UGC_COLORS[cat]}}>{cat}</div>
-                        <div className="text-xl font-bold text-gray-900">{formatCurrency(amt)}</div>
-                        <div className="text-xs text-gray-500 mt-1">{hc} employees · {pct.toFixed(1)}%</div>
-                      </div>
-                    );
-                  })}
+            <div className="p-6 overflow-y-auto h-full">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">UGC vs Non-UGC Split</h2>
+                  <p className="text-gray-500 text-sm mt-1">{mappedCount.toLocaleString()} employee-month rows classified</p>
                 </div>
+                <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}>
+                  {allMonths.map(m => <option key={m} value={m}>{formatMonthLabel(m)}{dataModel.forecastMonths.includes(m) ? ' (F)' : ''}</option>)}
+                </select>
+              </div>
 
-                {/* Breakdown pie-style bar for selected month */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-gray-800">Split by Category</h3>
-                    <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
-                      {allMonths.map(m => <option key={m} value={m}>{formatMonthLabel(m)}{dataModel.forecastMonths.includes(m) ? ' ★' : ''}</option>)}
-                    </select>
+              {selectedRow && (
+                <>
+                  <div className="grid grid-cols-2 gap-3 mb-6 md:grid-cols-4">
+                    {[...UGC_CATEGORIES, 'Unknown'].map(cat => (
+                      <div key={cat} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-3 h-3 rounded-full" style={{ background: UGC_COLORS[cat] }}></div>
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{cat}</span>
+                        </div>
+                        <p className="text-xl font-bold text-gray-900">{formatCurrency(selectedRow[cat + '_amt'])}</p>
+                        <p className="text-xs text-gray-400 mt-1">{selectedRow[cat + '_pct'].toFixed(1)}% · {selectedRow[cat + '_hc']} employees</p>
+                      </div>
+                    ))}
                   </div>
-                  {selectedRow && (
-                    <>
-                      <div className="flex h-8 rounded-lg overflow-hidden mb-4 gap-0.5">
-                        {cats.map(cat => (
-                          <div key={cat} title={`${cat}: ${(selectedRow[cat+'_pct']).toFixed(1)}%`}
-                            style={{ width: `${selectedRow[cat+'_pct']}%`, background: UGC_COLORS[cat], minWidth: selectedRow[cat+'_pct'] > 0 ? '2px' : '0' }}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        {cats.map(cat => (
-                          <span key={cat} className="flex items-center gap-1.5">
-                            <span className="w-3 h-3 rounded-full inline-block" style={{background: UGC_COLORS[cat]}} />
-                            <span className="font-medium text-gray-700">{cat}</span>
-                            <span className="text-gray-400">{formatCurrency(selectedRow[cat+'_amt'])} ({selectedRow[cat+'_pct'].toFixed(1)}%)</span>
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
 
-                {/* Monthly trend table */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="font-bold text-gray-800">Monthly Trend</h3>
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm mb-6">
+                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Cost Breakdown — {selectedRow.label}</p>
+                    <div className="flex rounded-full overflow-hidden h-8">
+                      {[...UGC_CATEGORIES, 'Unknown'].map(cat => {
+                        const pct = selectedRow[cat + '_pct'];
+                        if (pct < 0.5) return null;
+                        return <div key={cat} style={{ width: pct + '%', background: UGC_COLORS[cat] }} className="flex items-center justify-center text-white text-xs font-bold" title={cat + ': ' + pct.toFixed(1) + '%'}>{pct >= 5 ? pct.toFixed(0) + '%' : ''}</div>;
+                      })}
+                    </div>
+                    <div className="flex flex-wrap gap-4 mt-3">
+                      {[...UGC_CATEGORIES, 'Unknown'].map(cat => (
+                        <div key={cat} className="flex items-center gap-1.5 text-xs text-gray-600">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: UGC_COLORS[cat] }}></div>
+                          {cat}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs border-collapse">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-600 border-b border-gray-200 sticky left-0 bg-gray-50">Month</th>
-                          {UGC_CATEGORIES.map(cat => (
-                            <th key={cat} className="px-4 py-3 text-right font-semibold border-b border-gray-200" style={{color: UGC_COLORS[cat]}}>{cat}</th>
-                          ))}
-                          <th className="px-4 py-3 text-right font-semibold text-gray-600 border-b border-gray-200">Total</th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-600 border-b border-gray-200 w-32">Split</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {monthlyData.map(row => {
-                          const rowCats = UGC_CATEGORIES.filter(c => row[c+'_amt'] > 0);
-                          return (
-                            <tr key={row.month} className={`hover:bg-gray-50 ${row.isForecast ? 'bg-blue-50/30' : ''}`}>
-                              <td className="px-4 py-2.5 font-medium text-gray-700 whitespace-nowrap sticky left-0 bg-inherit">
-                                {row.label}{row.isForecast ? <span className="ml-1 text-blue-400 text-xs">★</span> : null}
-                              </td>
-                              {UGC_CATEGORIES.map(cat => (
-                                <td key={cat} className="px-4 py-2.5 text-right tabular-nums text-gray-700">
-                                  {row[cat+'_amt'] > 0 ? formatCurrency(row[cat+'_amt']) : <span className="text-gray-300">—</span>}
-                                </td>
-                              ))}
-                              <td className="px-4 py-2.5 text-right font-bold text-gray-900 tabular-nums">{formatCurrency(row.total)}</td>
-                              <td className="px-4 py-2.5">
-                                <div className="flex h-3 rounded overflow-hidden gap-px w-24">
-                                  {rowCats.map(cat => (
-                                    <div key={cat} style={{ width: `${row[cat+'_pct']}%`, background: UGC_COLORS[cat] }} title={`${cat}: ${row[cat+'_pct'].toFixed(1)}%`} />
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                </>
+              )}
+
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold text-gray-700">Month</th>
+                      {[...UGC_CATEGORIES, 'Unknown'].map(cat => (
+                        <th key={cat} className="px-4 py-3 font-semibold text-right text-gray-700">{cat}</th>
+                      ))}
+                      <th className="px-4 py-3 font-semibold text-right text-gray-700">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {monthlyData.map(row => (
+                      <tr key={row.month} onClick={() => setSelectedMonth(row.month)} className={`cursor-pointer hover:bg-gray-50 ${row.month === selectedMonth ? 'bg-blue-50' : ''} ${row.isForecast ? 'text-indigo-700' : ''}`}>
+                        <td className="px-4 py-2 font-medium">{row.label}{row.isForecast ? ' (F)' : ''}</td>
+                        {[...UGC_CATEGORIES, 'Unknown'].map(cat => (
+                          <td key={cat} className="px-4 py-2 text-right">{row[cat + '_amt'] > 0 ? formatCurrency(row[cat + '_amt']) : <span className="text-gray-300">—</span>}</td>
+                        ))}
+                        <td className="px-4 py-2 text-right font-semibold">{formatCurrency(row.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           );
@@ -1568,7 +1517,6 @@
           
           const [mappingData, setMappingData] = useState(null);
           const [positionMap, setPositionMap] = useState({ byNumber: {}, byDesc: {} });
-          const [employeeMapping, setEmployeeMapping] = useState({});
           const [isProcessing, setIsProcessing] = useState(true);
 
           // Derived from processedDataCache — used throughout render
@@ -1576,6 +1524,7 @@
           const rawMonthsList = processedDataCache?.rawMonthsList || [];
           
           const [assumptions, setAssumptions] = useState({ oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '' });
+          const [employeeMapping, setEmployeeMapping] = useState({});
           const [activeAdminTab, setActiveAdminTab] = useState('union');
           
           // Note: Forecasts is TRUE by default so users can explicitly see the future August 2026 data!
@@ -1621,6 +1570,44 @@
           const unionInputRef = useRef(null);
           const oneOffInputRef = useRef(null);
           const mappingInputRef = useRef(null);
+          const empMappingInputRef = useRef(null);
+
+          const handleEmployeeMappingUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            toast('Processing employee mapping file…', 'info');
+            processFile(file, async (parsed) => {
+              const map = {};
+              parsed.forEach(r => {
+                let emp_id = '', pos_num = '', pos_desc = '', ugc = '';
+                for (const [k, v] of Object.entries(r)) {
+                  const c = String(k).toLowerCase().replace(/[\s.#&]/g, '');
+                  if (c === 'id')             emp_id   = String(v ?? '').trim();
+                  if (c === 'position')        pos_num  = String(v ?? '').trim();
+                  if (c === 'posndesc' || c === 'positiondesc' || c === 'positiondescription') pos_desc = String(v ?? '').trim();
+                  if (c === 'ugcnonugc' || c === 'ugc') ugc = String(v ?? '').trim();
+                }
+                if (!emp_id) return;
+                if (!map[emp_id]) {
+                  map[emp_id] = { pos_num, pos_desc, ugc };
+                } else {
+                  if (!map[emp_id].pos_num  && pos_num)  map[emp_id].pos_num  = pos_num;
+                  if (!map[emp_id].pos_desc && pos_desc) map[emp_id].pos_desc = pos_desc;
+                  if (!map[emp_id].ugc      && ugc)      map[emp_id].ugc      = ugc;
+                }
+              });
+              const count = Object.keys(map).length;
+              if (count === 0) { toast('No employee IDs found in file', 'error'); return; }
+              setEmployeeMapping(map);
+              const { error } = await sb.from('assumptions').upsert(
+                [{ assumption_type: 'employee_mapping', data: map }],
+                { onConflict: 'assumption_type' }
+              );
+              if (error) { console.error('save employee_mapping error', error); toast('Mapping parsed but failed to save to DB', 'warn'); }
+              else toast(`Employee mapping saved — ${count} employees`, 'success');
+              if (empMappingInputRef.current) empMappingInputRef.current.value = null;
+            });
+          };
           
           const [incMonth, setIncMonth] = useState('2026-08');
           const [nhMonth, setNhMonth] = useState('2026-08');
@@ -1820,7 +1807,6 @@
                       if (posnNum && !posnName && positionMap.byNumber[posnNum]) {
                         posnName = positionMap.byNumber[posnNum];
                       }
-                      // Employee mapping override: position + UGC classification
                       const empMapEntry = employeeMapping[id];
                       let finalPosnNum  = posnNum;
                       let finalPosnName = posnName;
@@ -2727,48 +2713,6 @@
               });
           };
 
-          const empMappingInputRef = useRef(null);
-          const handleEmployeeMappingUpload = (e) => {
-              const file = e.target.files[0];
-              if (!file) return;
-              toast('Processing employee mapping file…', 'info');
-              processFile(file, async (parsed) => {
-                  // Columns: Fund #, Org. #, UGC & non UGC, Account #, ID, Position, Posn Desc
-                  // One employee can appear in multiple rows — take first occurrence for position,
-                  // and first non-null ugc value per employee
-                  const map = {};
-                  parsed.forEach(r => {
-                      let emp_id = '', pos_num = '', pos_desc = '', ugc = '';
-                      for (const [k, v] of Object.entries(r)) {
-                          const c = String(k).toLowerCase().replace(/[\s.#&]/g, '');
-                          if (c === 'id')             emp_id   = String(v ?? '').trim();
-                          if (c === 'position')        pos_num  = String(v ?? '').trim();
-                          if (c === 'posndesc' || c === 'positiondesc' || c === 'positiondescription') pos_desc = String(v ?? '').trim();
-                          if (c === 'ugcnonugc' || c === 'ugcnonugc' || c === 'ugc') ugc = String(v ?? '').trim();
-                      }
-                      if (!emp_id) return;
-                      if (!map[emp_id]) {
-                          map[emp_id] = { pos_num, pos_desc, ugc };
-                      } else {
-                          // Fill in missing fields from subsequent rows
-                          if (!map[emp_id].pos_num  && pos_num)  map[emp_id].pos_num  = pos_num;
-                          if (!map[emp_id].pos_desc && pos_desc) map[emp_id].pos_desc = pos_desc;
-                          if (!map[emp_id].ugc      && ugc)      map[emp_id].ugc      = ugc;
-                      }
-                  });
-                  const count = Object.keys(map).length;
-                  if (count === 0) { toast('No employee IDs found in file', 'error'); return; }
-                  setEmployeeMapping(map);
-                  const { error } = await sb.from('assumptions').upsert(
-                      [{ assumption_type: 'employee_mapping', data: map }],
-                      { onConflict: 'assumption_type' }
-                  );
-                  if (error) { console.error('save employee_mapping error', error); toast('Mapping parsed but failed to save to DB', 'warn'); }
-                  else toast(`Employee mapping saved — ${count} employees`, 'success');
-                  if (empMappingInputRef.current) empMappingInputRef.current.value = null;
-              });
-          };
-
           if (!dataModel) {
             // Error connecting to DB
             if (loadError) {
@@ -3077,10 +3021,8 @@
                 {/* --- UNION TRENDS TAB --- */}
                 {activeTab === 'uniontrend' && <UnionTrendTab dataModel={dataModel} processedDataCache={processedDataCache} scenarioFilters={scenarioFilters} />}
 
-                {/* --- UGC SPLIT TAB --- */}
-                {activeTab === 'ugc' && <UGCSplitTab dataModel={dataModel} processedDataCache={processedDataCache} scenarioFilters={scenarioFilters} />}
-
                 {/* --- SENSITIVITY TAB --- */}
+                {activeTab === 'ugc' && <UGCSplitTab dataModel={dataModel} processedDataCache={processedDataCache} scenarioFilters={scenarioFilters} />}
                 {activeTab === 'sensitivity' && <SensitivityTab dataModel={dataModel} processedDataCache={processedDataCache} />}
 
                 {/* --- ADMIN TAB --- */}
@@ -3275,65 +3217,6 @@
                                 </div>
                             )}
 
-                            {activeAdminTab === 'empmapping' && (
-                                <div className="max-w-2xl">
-                                    <h2 className="text-2xl font-bold mb-2">Employee / UGC Mapping</h2>
-                                    <p className="text-gray-600 mb-6">Upload the HR position mapping file to enrich position names, position numbers, and UGC/non-UGC classifications for each employee. Expected columns: <b>ID</b>, <b>Position</b>, <b>Posn Desc</b>, <b>UGC &amp; non UGC</b>.</p>
-
-                                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-800">
-                                        <b>{Object.keys(employeeMapping).length} employees</b> currently mapped.
-                                        {Object.keys(employeeMapping).length > 0 && (
-                                            <button onClick={async () => {
-                                                setEmployeeMapping({});
-                                                await sb.from('assumptions').upsert([{ assumption_type: 'employee_mapping', data: {} }], { onConflict: 'assumption_type' });
-                                                toast('Employee mapping cleared', 'success');
-                                            }} className="ml-4 text-red-600 font-semibold hover:underline text-xs">Clear</button>
-                                        )}
-                                    </div>
-
-                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-6">
-                                        <label className="block w-full border-2 border-dashed border-blue-300 rounded-xl p-8 text-center cursor-pointer hover:bg-blue-50 transition-colors bg-white">
-                                            <UploadIcon />
-                                            <span className="text-blue-600 font-medium text-sm">Select Position / UGC Mapping File (.xlsx or .csv)</span>
-                                            <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleEmployeeMappingUpload} ref={empMappingInputRef} />
-                                        </label>
-                                    </div>
-
-                                    {Object.keys(employeeMapping).length > 0 && (
-                                        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-700">
-                                                Preview — first 20 employees
-                                            </div>
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-xs border-collapse">
-                                                    <thead className="bg-gray-50">
-                                                        <tr>
-                                                            {['Employee ID', 'Position #', 'Position Name', 'UGC Class'].map(h => (
-                                                                <th key={h} className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200">{h}</th>
-                                                            ))}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-100">
-                                                        {Object.entries(employeeMapping).slice(0, 20).map(([id, v]) => (
-                                                            <tr key={id} className="hover:bg-gray-50">
-                                                                <td className="px-3 py-2 font-mono">{id}</td>
-                                                                <td className="px-3 py-2 font-mono text-gray-500">{v.pos_num || '—'}</td>
-                                                                <td className="px-3 py-2">{v.pos_desc || '—'}</td>
-                                                                <td className="px-3 py-2">
-                                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${v.ugc === 'UGC' ? 'bg-blue-100 text-blue-700' : v.ugc === 'non UGC' ? 'bg-orange-100 text-orange-700' : v.ugc === 'Donor Fund' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                                        {v.ugc || '—'}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
                             {activeAdminTab === 'positions' && (
                                 <PositionAdminPanel positionMap={positionMap} setPositionMap={setPositionMap} />
                             )}
@@ -3399,6 +3282,50 @@
                                 </div>
                             )}
 
+                            {activeAdminTab === 'empmapping' && (
+                                <div className="max-w-3xl">
+                                    <h2 className="text-2xl font-bold mb-1">Employee / UGC Mapping</h2>
+                                    <p className="text-gray-500 text-sm mb-6">Upload the Mapping Excel file to classify each employee as UGC, non UGC, or Donor Fund, and override position numbers/names. Columns required: <code className="bg-gray-100 px-1 rounded">Fund #</code>, <code className="bg-gray-100 px-1 rounded">Org. #</code>, <code className="bg-gray-100 px-1 rounded">UGC &amp; non UGC</code>, <code className="bg-gray-100 px-1 rounded">Account #</code>, <code className="bg-gray-100 px-1 rounded">ID</code>, <code className="bg-gray-100 px-1 rounded">Position</code>, <code className="bg-gray-100 px-1 rounded">Posn Desc</code>.</p>
+                                    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-6">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">Upload Mapping File (.xlsx / .csv)</label>
+                                        <input ref={empMappingInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleEmployeeMappingUpload} className="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                    </div>
+                                    {Object.keys(employeeMapping).length > 0 ? (
+                                        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                                            <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center justify-between">
+                                                <span className="text-sm font-semibold text-green-700">✓ {Object.keys(employeeMapping).length} employees mapped</span>
+                                                <button onClick={() => { setEmployeeMapping({}); sb.from('assumptions').upsert([{ assumption_type: 'employee_mapping', data: {} }], { onConflict: 'assumption_type' }); toast('Mapping cleared', 'info'); }} className="text-xs text-red-600 hover:underline">Clear mapping</button>
+                                            </div>
+                                            <div className="overflow-auto max-h-80">
+                                                <table className="w-full text-xs text-left border-collapse">
+                                                    <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
+                                                        <tr>
+                                                            <th className="px-4 py-2 font-semibold text-gray-600">Employee ID</th>
+                                                            <th className="px-4 py-2 font-semibold text-gray-600">Position #</th>
+                                                            <th className="px-4 py-2 font-semibold text-gray-600">Position Desc</th>
+                                                            <th className="px-4 py-2 font-semibold text-gray-600">UGC Category</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100">
+                                                        {Object.entries(employeeMapping).slice(0, 200).map(([id, v]) => (
+                                                            <tr key={id} className="hover:bg-gray-50">
+                                                                <td className="px-4 py-2 font-mono">{id}</td>
+                                                                <td className="px-4 py-2">{v.pos_num || <span className="text-gray-300">—</span>}</td>
+                                                                <td className="px-4 py-2">{v.pos_desc || <span className="text-gray-300">—</span>}</td>
+                                                                <td className="px-4 py-2"><span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${v.ugc === 'UGC' ? 'bg-blue-100 text-blue-700' : v.ugc === 'non UGC' ? 'bg-orange-100 text-orange-700' : v.ugc === 'Donor Fund' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>{v.ugc || 'Unknown'}</span></td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                                {Object.keys(employeeMapping).length > 200 && <p className="text-center text-xs text-gray-400 py-2">Showing first 200 of {Object.keys(employeeMapping).length}</p>}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center p-8 bg-gray-50 border border-dashed border-gray-300 rounded-xl text-gray-400 text-sm">No mapping loaded yet. Upload a file above.</div>
+                                    )}
+                                </div>
+                            )}
+
                             {activeAdminTab === 'glossary' && (
                                 <div className="max-w-3xl">
                                     <h2 className="text-2xl font-bold mb-6">Glossary & Definitions</h2>
@@ -3419,89 +3346,14 @@
           );
         }
 
-        // --- Auth Gate ---
-        function LoginScreen({ onLogin }) {
-          const [email, setEmail]       = React.useState('');
-          const [password, setPassword] = React.useState('');
-          const [loading, setLoading]   = React.useState(false);
-          const [error, setError]       = React.useState('');
-
-          async function handleLogin(e) {
-            e.preventDefault();
-            setLoading(true);
-            setError('');
-            const { error: err } = await sb.auth.signInWithPassword({ email, password });
-            if (err) { setError(err.message); setLoading(false); }
-            else onLogin();
-          }
-
-          return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md">
-                <div className="flex flex-col items-center mb-8">
-                  <img src="logo_uwi_lrg.jpg" alt="UWI" className="h-16 mb-4 object-contain" onError={e => e.target.style.display='none'} />
-                  <h1 className="text-2xl font-bold text-gray-800">UWI Payroll Analytics</h1>
-                  <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
-                </div>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email" required autoComplete="email"
-                      value={email} onChange={e => setEmail(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="you@uwimona.edu.jm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input
-                      type="password" required autoComplete="current-password"
-                      value={password} onChange={e => setPassword(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  {error && <p className="text-red-600 text-sm">{error}</p>}
-                  <button
-                    type="submit" disabled={loading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-2 text-sm transition disabled:opacity-50"
-                  >
-                    {loading ? 'Signing in…' : 'Sign In'}
-                  </button>
-                </form>
-              </div>
-            </div>
-          );
-        }
-
-        function AuthGate() {
-          const [session, setSession] = React.useState(undefined);
-
-          React.useEffect(() => {
-            sb.auth.getSession().then(({ data }) => setSession(data.session));
-            const { data: { subscription } } = sb.auth.onAuthStateChange((_e, s) => setSession(s));
-            return () => subscription.unsubscribe();
-          }, []);
-
-          if (session === undefined) return (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-gray-400 text-sm">Loading…</div>
-            </div>
-          );
-
-          if (!session) return <LoginScreen onLogin={() => sb.auth.getSession().then(({ data }) => setSession(data.session))} />;
-
-          return (
-            <ErrorBoundary>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
-            </ErrorBoundary>
-          );
-        }
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<AuthGate />);
+        root.render(
+          <ErrorBoundary>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
