@@ -127,34 +127,52 @@
 
         // --- Payroll Data ---
         async function loadPayrollFromDB() {
-          const PAGE = 1000;
-          const rows = [];
-          let offset = 0;
-          while (true) {
-            const { data, error } = await sb
-              .from('payroll_data')
-              .select('calendar_month,employee_id,employee_name,amount,group_name,org_number,account_desc,position_desc,department_name,sal_plan')
-              .order('calendar_month')
-              .range(offset, offset + PAGE - 1);
-            if (error) throw new Error(`Failed to load payroll data: ${JSON.stringify(error)}`);
-            if (!data || data.length === 0) break;
-            data.forEach(r => rows.push({
-              'Pay Period End':    r.calendar_month,
-              'ID':                r.employee_id,
-              'Name':              r.employee_name,
-              'Amount':            r.amount != null ? parseFloat(r.amount) : 0,
-              'Group':             r.group_name,
-              'Org. #':            r.org_number,
-              'Acct. Description': r.account_desc,
-              'Posn Desc':         r.position_desc,
-              'Department name':   r.department_name,
-              'Sal Plan':          r.sal_plan,
-            }));
-            if (data.length < PAGE) break;
-            offset += PAGE;
+          const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/rpc/get_payroll_by_month`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey':        SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+              },
+              body: '{}',
+            }
+          );
+
+          if (!res.ok) {
+            const err = await res.text();
+            console.error('loadPayroll RPC error:', res.status, err);
+            throw new Error(`Failed to load payroll data (${res.status}): ${err}`);
           }
-          console.log(`✓ Loaded ${rows.length} payroll rows`);
-          return rows.length === 0 ? null : rows;
+
+          const data = await res.json();
+          if (!Array.isArray(data) || data.length === 0) {
+            console.warn('loadPayroll: no data returned');
+            return null;
+          }
+
+          const rows = [];
+          data.forEach(monthRow => {
+            const month = monthRow.calendar_month;
+            const employees = Array.isArray(monthRow.employees) ? monthRow.employees : [];
+            employees.forEach(e => {
+              rows.push({
+                'Pay Period End':    month,
+                'ID':                e.id,
+                'Name':              e.name,
+                'Amount':            e.amt != null ? parseFloat(e.amt) : 0,
+                'Group':             e.grp,
+                'Org. #':            e.org,
+                'Acct. Description': e.acc,
+                'Posn Desc':         e.pos,
+                'Department name':   e.dep,
+                'Sal Plan':          e.sal,
+              });
+            });
+          });
+          console.log(`✓ Loaded ${rows.length} employee-month rows across ${data.length} months`);
+          return rows;
         }
 
         // Parse UWI pay period date: format is DD/MM/YYYY (e.g. "1/8/2025" = 1st Aug 2025)
