@@ -1876,13 +1876,19 @@
           // --- Derived Setup & Auto-Apply 5% Rules ---
           useEffect(() => {
               if (!processedDataCache) return;
+              const savedUnion = assumptions.union || [];
               const initialDrafts = {};
               processedDataCache.uniqueGroups.forEach(g => {
-                  initialDrafts[g] = { pct: 5, startMonth: '2026-08' };
+                  // Find the most-recent saved rule for this group (last wins if duplicates exist)
+                  const savedRules = savedUnion.filter(r => r.group === g);
+                  const savedRule = savedRules.length > 0 ? savedRules[savedRules.length - 1] : null;
+                  initialDrafts[g] = savedRule
+                      ? { pct: savedRule.percentage, startMonth: savedRule.startMonth }
+                      : { pct: 5, startMonth: '2026-08' };
               });
               setUnionDrafts(initialDrafts);
 
-              // Instantly Auto-Apply 5% Rule if union rules are empty
+              // Auto-Apply 5% Rule only if union rules are completely empty
               setAssumptions(prev => {
                   if (prev.union && prev.union.length === 0 && processedDataCache.uniqueGroups.length > 0) {
                       const autoRules = processedDataCache.uniqueGroups.map(g => ({
@@ -1900,7 +1906,7 @@
                   }
                   return prev;
               });
-          }, [processedDataCache]);
+          }, [processedDataCache, assumptions.union]);
 
           const handleUnionDraftChange = (group, field, value) => {
               setUnionDrafts(prev => ({ ...prev, [group]: { ...prev[group], [field]: value } }));
@@ -1910,7 +1916,9 @@
               const draft = unionDrafts[group];
               if (!draft || draft.pct === '' || !draft.startMonth) return toast("Fill all fields for " + group, "warn");
               const newRule = { group, percentage: parseFloat(draft.pct), startMonth: draft.startMonth, id: Date.now() + Math.random() };
-              saveAssumptionsState({ ...assumptions, union: [...(assumptions.union || []), newRule] });
+              // Replace any existing rules for this group — never append duplicates
+              const filtered = (assumptions.union || []).filter(r => r.group !== group);
+              saveAssumptionsState({ ...assumptions, union: [...filtered, newRule] });
               toast(`Applied ${draft.pct}% to ${group} from ${formatMonthLabel(draft.startMonth)}`, "success");
           };
 
@@ -1925,7 +1933,8 @@
                   });
               }
               if (newRules.length === 0) return toast("No valid rules to apply.", "warn");
-              saveAssumptionsState({ ...assumptions, union: [...(assumptions.union || []), ...newRules] });
+              // Full replace — one rule per group, no duplicates
+              saveAssumptionsState({ ...assumptions, union: newRules });
               toast(`Applied ${newRules.length} group increases`, "success");
           };
 
