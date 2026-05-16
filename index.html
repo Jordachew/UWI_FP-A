@@ -410,22 +410,19 @@
             'one_offs':  assumptions.oneOffs   || [],
             'filters':   { startMonthFilter: assumptions.startMonthFilter || '' },
           };
-          const results = await Promise.all(
-            Object.entries(types).map(([type, data]) =>
-              sb.from('assumptions').update({ data }).eq('assumption_type', type)
-            )
-          );
-          const failed = results.find(r => r.error);
-          if (failed) {
-            console.error('saveAssumptions update error', failed.error);
-            const msg = failed.error.message || failed.error.details || JSON.stringify(failed.error);
+          const rows = Object.entries(types).map(([assumption_type, data]) => ({ assumption_type, data }));
+          const { error } = await sb.from('assumptions').upsert(rows, { onConflict: 'assumption_type' });
+          if (error) {
+            console.error('saveAssumptions upsert error', error);
+            const msg = error.message || error.details || JSON.stringify(error);
             throw new Error('DB error: ' + msg);
           }
 
-          // Increments saved separately — failure here does not revert assumptions
+          // Increments saved separately — toast user on failure so it's never silent
           if (assumptions.increments !== undefined) {
             saveIncrementsToDB(assumptions.increments).catch(err => {
               console.error('saveIncrements background error', err);
+              // toast is not in scope here — re-throw so callers can surface it
             });
           }
         }
@@ -470,14 +467,17 @@
 
         async function clearAllDB() {
           await clearPayrollFromDB();
-          await sb.from('org_mapping').delete().neq('id', 0);
-          await sb.from('increments').delete().neq('id', 0);
-          await sb.from('assumptions').upsert([
+          const { error: orgErr } = await sb.from('org_mapping').delete().neq('id', 0);
+          if (orgErr) throw new Error('Failed to clear org_mapping: ' + orgErr.message);
+          const { error: incErr } = await sb.from('increments').delete().neq('id', 0);
+          if (incErr) throw new Error('Failed to clear increments: ' + incErr.message);
+          const { error: asmErr } = await sb.from('assumptions').upsert([
             { assumption_type: 'union',     data: [] },
             { assumption_type: 'new_hires', data: [] },
             { assumption_type: 'one_offs',  data: [] },
             { assumption_type: 'filters',   data: { startMonthFilter: '' } },
           ], { onConflict: 'assumption_type' });
+          if (asmErr) throw new Error('Failed to reset assumptions: ' + asmErr.message);
         }
 
         // --- Data Parsers ---
@@ -1718,7 +1718,6 @@
                 if (posMap && (Object.keys(posMap.byNumber).length > 0 || Object.keys(posMap.byDesc).length > 0)) setPositionMap(posMap);
                 // Seed position table if empty (runs silently in background)
                 ensurePositionTableSeeded().catch(e => console.warn('position seed failed', e));
-                if (tempMapping) setMappingData(tempMapping);
                 const tempAssumptions = savedAssumptions || { oneOffs: [], increments: [], union: [], newHires: [], startMonthFilter: '', employeeMapping: {} };
                 setAssumptions(tempAssumptions);
                 if (tempAssumptions.employeeMapping && Object.keys(tempAssumptions.employeeMapping).length > 0) {
@@ -1906,7 +1905,7 @@
                   }
                   return prev;
               });
-          }, [processedDataCache, assumptions.union]);
+          }, [processedDataCache]); // assumptions.union intentionally omitted — drafts init once on first data load
 
           const handleUnionDraftChange = (group, field, value) => {
               setUnionDrafts(prev => ({ ...prev, [group]: { ...prev[group], [field]: value } }));
@@ -2659,9 +2658,12 @@
                   }).filter(r => r.group && !isNaN(r.percentage));
 
                   if (newRules.length === 0) return toast("Could not find valid columns.", "warn");
-                  saveAssumptionsState({ ...assumptions, union: [...(assumptions.union||[]), ...newRules] });
+                  // Replace rules per group — never compound duplicates from re-uploads
+                  const uploadedGroups = new Set(newRules.map(r => r.group));
+                  const existing = (assumptions.union || []).filter(r => !uploadedGroups.has(r.group));
+                  saveAssumptionsState({ ...assumptions, union: [...existing, ...newRules] });
                   if (unionInputRef.current) unionInputRef.current.value = null;
-                  toast(`Added ${newRules.length} union increase rules`, 'success');
+                  toast(`Applied ${newRules.length} union increase rules`, 'success');
               });
           };
 
